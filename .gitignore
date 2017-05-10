@@ -1,1 +1,7 @@
- 
+#Nsight
+.cproject
+.project
+.settings/
+
+#KDE
+.directory
