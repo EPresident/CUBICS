@@ -3,10 +3,13 @@
 #include <data_structures/Vector.h>
 #include <variables/IntVariables.h>
 
+#include <constraints/IntLinNe.h>
+
 struct IntConstraints
 {
     enum Type
     {
+        IntLinNe
     };
 
     int count;
