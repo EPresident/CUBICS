@@ -13,3 +13,12 @@ void LogUtils::error(const char* function, const char* msg)
 #endif
 }
 
+#ifdef GPU
+void LogUtils::cudaAssert(const char* function, cudaError_t code)
+{
+    if (code != cudaSuccess)
+    {
+        error(function, cudaGetErrorString(code));
+    }
+}
+#endif
