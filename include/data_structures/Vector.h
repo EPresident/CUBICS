@@ -63,8 +63,8 @@ struct Vector
     {
         if (capacity < other->size)
         {
+            MemUtils::realloc<T>(&data, other->size, capacity);
             capacity = other->size;
-            MemUtils::realloc<T>(&data, capacity);
         }
 
         MemUtils::memcpy<T>(data, other->data, other->size);
@@ -75,8 +75,8 @@ struct Vector
     {
         if (capacity < count)
         {
+            MemUtils::realloc<T>(&data, count * 2, capacity);
             capacity = count * 2;
-            MemUtils::realloc<T>(&data, capacity);
         }
 
         size = count;
@@ -98,8 +98,8 @@ struct Vector
     {
         if (size == capacity)
         {
+            MemUtils::realloc<T>(&data, capacity * 2, capacity);
             capacity = capacity * 2;
-            MemUtils::realloc<T>(&data, capacity);
         }
 
         *(data + size) = t;
