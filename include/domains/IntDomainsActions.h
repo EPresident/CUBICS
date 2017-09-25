@@ -1,12 +1,16 @@
 #pragma once
 
 #include <data_structures/Vector.h>
+#include <data_structures/Lock.h>
 
 struct IntDomainsActions
 {
     Vector<Vector<int>> elementsToRemove;
     Vector<int> lowerbounds;
     Vector<int> upperbounds;
+#ifdef GPU
+    Vector<Lock> locks;
+#endif
 
     void initialize(int count);
     void deinitialize();
