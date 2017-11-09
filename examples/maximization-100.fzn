@@ -1,0 +1,2 @@
+var 0..100: x:: output_var;
+solve  maximize x;
