@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 
 #include <utils/Utils.h>
 #include <flatzinc/flatzinc.h>
@@ -20,7 +21,7 @@ int main(int argc, char * argv[])
 
     IntBacktrackSearcher* backtrackSearcher;
     MemUtils::malloc(&backtrackSearcher);
-    backtrackSearcher->initialize(fzModel->intVariables, fzModel->intConstraints);
+    backtrackSearcher->initialize(fzModel);
 
     bool* satisfiableModel;
     MemUtils::malloc(&satisfiableModel);
@@ -41,7 +42,13 @@ int main(int argc, char * argv[])
         *solutionFound = true;
 
         unsigned int solutionCount = 0;
-        while (*solutionFound and solutionCount < opts.solutionsCount)
+
+        bool onlyBestSolution = false;
+        onlyBestSolution = onlyBestSolution or backtrackSearcher->searchType == IntBacktrackSearcher::SearchType::Maximization;
+        onlyBestSolution = onlyBestSolution or backtrackSearcher->searchType == IntBacktrackSearcher::SearchType::Minimization;
+        onlyBestSolution = onlyBestSolution and opts.solutionsCount == 1;
+        std::stringstream bestSolution;
+        while (*solutionFound and (solutionCount < opts.solutionsCount or onlyBestSolution))
         {
 #ifdef GPU
             Wrappers::getNextSolution<<<1, 1>>>(backtrackSearcher, solutionFound);
@@ -51,12 +58,30 @@ int main(int argc, char * argv[])
 #endif
             if (*solutionFound)
             {
-                solutionCount += 1;
 
-                printer.print(cout, *fzModel);
-                cout << "----------" << endl;
+                if (not onlyBestSolution)
+                {
+                    solutionCount += 1;
+
+                    printer.print(cout, *fzModel);
+                    cout << "----------" << endl;
+                }
+                else
+                {
+                    solutionCount = 1;
+
+                    bestSolution.str("");
+                    printer.print(bestSolution, *fzModel);
+                }
             }
         }
+
+        if(onlyBestSolution)
+        {
+            cout << bestSolution.rdbuf();
+            cout << "----------" << endl;
+        }
+
         if (solutionCount > 0)
         {
             cout << "==========" << endl;

@@ -2,10 +2,10 @@
 #include <utils/Utils.h>
 #include <wrappers/Wrappers.h>
 
-void IntBacktrackSearcher::initialize(IntVariables* variables, IntConstraints* constraints)
+void IntBacktrackSearcher::initialize(FlatZinc::FlatZincModel* fzModel)
 {
-    this->variables = variables;
-    this->constraints = constraints;
+    variables = fzModel->intVariables;
+    constraints = fzModel->intConstraints;
 
     chosenVariables.initialize(variables->count);
     chosenValues.initialize(variables->count);
@@ -23,6 +23,36 @@ void IntBacktrackSearcher::initialize(IntVariables* variables, IntConstraints* c
 #ifdef GPU
     varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
 #endif
+
+    switch (fzModel->method())
+    {
+        case FlatZinc::FlatZincModel::Meth::SAT:
+        {
+            searchType = Satisfiability;
+        }
+            break;
+        case FlatZinc::FlatZincModel::Meth::MAX:
+        {
+            searchType = Maximization;
+        }
+            break;
+        case FlatZinc::FlatZincModel::Meth::MIN:
+        {
+            searchType = Minimization;
+        }
+            break;
+    }
+
+    if (searchType == Maximization or searchType == Minimization)
+    {
+        optVariable = fzModel->optVar();
+        optConstraint = fzModel->optConst();
+    }
+    else
+    {
+        optVariable = -1;
+        optConstraint = -1;
+    }
 }
 
 void IntBacktrackSearcher::deinitialize()
@@ -35,7 +65,6 @@ void IntBacktrackSearcher::deinitialize()
 
     propagator.deinitialize();
 }
-
 
 cudaDevice bool IntBacktrackSearcher::getNextSolution()
 {
@@ -149,12 +178,28 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                     backtrackingLevel -= 1;
                     chosenVariables.pop_back();
                     chosenValues.pop_back();
-
                 }
             }
                 break;
         }
     }
 
+    if (solutionFound and (searchType == Maximization or searchType == Minimization))
+    {
+        shrinkOptimizationBound();
+    }
+
     return solutionFound;
+}
+
+cudaDevice void IntBacktrackSearcher::shrinkOptimizationBound()
+{
+    if (searchType == Maximization)
+    {
+        constraints->parameters[optConstraint][0] = variables->domains.getMin(optVariable) + 1;
+    }
+    else if (searchType == Minimization)
+    {
+        constraints->parameters[optConstraint][0] = variables->domains.getMin(optVariable) - 1;
+    }
 }

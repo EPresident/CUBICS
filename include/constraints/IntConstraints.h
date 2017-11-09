@@ -5,13 +5,17 @@
 
 #include <constraints/IntLinNe.h>
 #include <constraints/IntLinLe.h>
+#include <constraints/IntOptLb.h>
+#include <constraints/IntOptUb.h>
 
 struct IntConstraints
 {
     enum Type
     {
         IntLinNe,
-        IntLinLe
+        IntLinLe,
+        IntOptLb,
+        IntOptUb
     };
 
     int count;

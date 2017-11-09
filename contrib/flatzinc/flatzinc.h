@@ -86,6 +86,9 @@ namespace FlatZinc {
 
     /// Index of the integer variable to optimize
     int _optVar;
+
+    /// Index of the optimization constraint
+    int _optConst;
   
     /// Whether to solve as satisfaction or optimization problem
     Meth _method;
@@ -152,6 +155,9 @@ namespace FlatZinc {
 
     /// Return index of variable used for optimization
     int optVar(void) const;
+
+    /// Return index of the optimization constraint
+    int optConst(void) const;
 
     /**
      * \brief Create branchers corresponding to the solve item annotations

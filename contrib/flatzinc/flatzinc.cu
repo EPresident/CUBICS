@@ -229,6 +229,13 @@ namespace FlatZinc {
       ann = new AST::Array(c);
     else
       ann->a.push_back(c);
+
+    AST::Array* cArgs = new AST::Array(2);
+    cArgs->a[0] = new AST::IntLit(INT_MAX);
+    cArgs->a[1] = new AST::IntVar(_optVar);
+    ConExpr ce("int_opt_ub", cArgs);
+    postConstraint(ce, nullptr);
+    _optConst = intConstraints->count - 1;
   }
 
   void
@@ -247,6 +254,13 @@ namespace FlatZinc {
       ann = new AST::Array(c);
     else
       ann->a.push_back(c);
+
+    AST::Array* cArgs = new AST::Array(2);
+    cArgs->a[0] = new AST::IntLit(INT_MIN);
+    cArgs->a[1] = new AST::IntVar(_optVar);
+    ConExpr ce("int_opt_lb", cArgs);
+    postConstraint(ce, nullptr);
+    _optConst = intConstraints->count - 1;
   }
 
   FlatZincModel::~FlatZincModel(void) {
@@ -282,6 +296,11 @@ namespace FlatZinc {
   int
   FlatZincModel::optVar(void) const {
     return _optVar;
+  }
+
+  int
+  FlatZincModel::optConst(void) const {
+    return _optConst;
   }
 
   void

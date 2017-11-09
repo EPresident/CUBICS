@@ -6,6 +6,7 @@
 #include <choosers/IntValuesChooser.h>
 #include <propagators/IntConstraintsPropagator.h>
 #include <searchers/IntBacktrackStack.h>
+#include <flatzinc/flatzinc.h>
 
 struct IntBacktrackSearcher
 {
@@ -36,13 +37,27 @@ struct IntBacktrackSearcher
 
     IntConstraintsPropagator propagator;
 
+
 #ifdef GPU
     int varibalesBlockCount;
 #endif
 
-    void initialize(IntVariables* variables, IntConstraints* constraints);
+    enum SearchType
+    {
+        Satisfiability,
+        Maximization,
+        Minimization
+    };
+
+    int searchType;
+    int optVariable;
+    int optConstraint;
+
+    void initialize(FlatZinc::FlatZincModel* fzModel);
     void deinitialize();
 
     cudaDevice bool getNextSolution();
+
+    cudaDevice void shrinkOptimizationBound();
 };
 
