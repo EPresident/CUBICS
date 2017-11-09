@@ -246,7 +246,37 @@ namespace FlatZinc {
       std::cerr << "int_negate("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<")::"<<(*ann)<<"\n";
     }
+    */
+    void p_int_opt_lb(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
+#ifndef NDEBUG
+      std::cerr << "int_opt_lb("<<(*ce[0])<<","<<(*ce[1])<<")::"<<(*ann)<<"\n";
+#endif
+      s.intConstraints->push(IntConstraints::Type::IntOptLb);
+      int constraint = s.intConstraints->count - 1;
 
+      int variable = ce[1]->getIntVar();
+      s.intVariables->constraints[variable].push_back(constraint);
+      s.intConstraints->variables[constraint].push_back(variable);
+      int parameter = ce[0]->getInt();
+
+      s.intConstraints->parameters[constraint].push_back(parameter);
+    }
+    void p_int_opt_ub(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
+#ifndef NDEBUG
+      std::cerr << "int_opt_ub("<<(*ce[0])<<","<<(*ce[1])<<")::"<<(*ann)<<"\n";
+#endif
+      s.intConstraints->push(IntConstraints::Type::IntOptUb);
+      int constraint = s.intConstraints->count - 1;
+
+      int variable = ce[1]->getIntVar();
+      s.intVariables->constraints[variable].push_back(constraint);
+      s.intConstraints->variables[constraint].push_back(variable);
+      int parameter = ce[0]->getInt();
+
+      s.intConstraints->parameters[constraint].push_back(parameter);
+    }
+
+    /*
     void p_bool_eq(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
       std::cerr << "bool_eq("<<(*ce[0])<<","<<(*ce[1])
         <<")::"<<(*ann)<<"\n";
@@ -414,6 +444,10 @@ namespace FlatZinc {
         registry().add("int_max", &p_int_max);
         registry().add("int_abs", &p_abs);
         registry().add("int_negate", &p_int_negate);
+        */
+        registry().add("int_opt_lb", &p_int_opt_lb);
+        registry().add("int_opt_ub", &p_int_opt_ub);
+        /*
         registry().add("bool_eq", &p_bool_eq);
         registry().add("bool_eq_reif", &p_bool_eq_reif);
         registry().add("bool_ne", &p_bool_ne);
