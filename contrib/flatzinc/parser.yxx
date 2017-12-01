@@ -37,11 +37,12 @@
 
 %pure-parser
 %parse-param {void *parm}
+%lex-param {void *YYLEX_PARAM}
 %{
 #define YYPARSE_PARAM parm
 #define YYLEX_PARAM static_cast<ParserState*>(parm)->yyscanner
-#include "flatzinc.hh"
-#include "parser.hh"
+#include <flatzinc/flatzinc.h>
+#include <flatzinc/parser.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -503,8 +504,12 @@ vardecl_item:
       FZ_VAR int_ti_expr_tail ':' var_par_id annotations non_array_expr_opt
       {
         ParserState* pp = static_cast<ParserState*>(parm);
-        bool print = $5->hasAtom("output_var");
-        bool introduced = $5->hasAtom("var_is_introduced");
+        bool print = false;
+        bool introduced = false;
+        if ($5) {
+          print = $5->hasAtom("output_var");
+          introduced = $5->hasAtom("var_is_introduced");
+        }
         pp->intvarTable.put($4, pp->intvars.size());
         if (print) {
           pp->output(std::string($4), new AST::IntVar(pp->intvars.size()));

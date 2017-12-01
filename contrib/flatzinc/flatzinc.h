@@ -42,9 +42,9 @@
 #include <map>
 #include <cassert>
 
-#include "conexpr.hh"
-#include "ast.hh"
-#include "varspec.hh"
+#include <flatzinc/conexpr.h>
+#include <flatzinc/ast.h>
+#include <flatzinc/varspec.h>
 
 /**
  * \namespace FlatZinc
