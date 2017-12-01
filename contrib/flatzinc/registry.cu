@@ -42,6 +42,9 @@
 #include <flatzinc/registry.h>
 #include <flatzinc/flatzinc.h>
 
+#include <utils/Utils.h>
+#include <constraints/IntConstraints.h>
+
 namespace FlatZinc {
 
   Registry& registry(void) {
@@ -66,6 +69,7 @@ namespace FlatZinc {
 
   namespace {
 
+    /*
     void p_int_eq(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
       std::cerr << "int_eq("<<(*ce[0])<<","<<(*ce[1])<<")::"<<(*ann)<<"\n";
     }
@@ -84,8 +88,10 @@ namespace FlatZinc {
     void p_int_lt(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
       std::cerr << "int_lt("<<(*ce[0])<<","<<(*ce[1])<<")::"<<(*ann)<<"\n";
     }
+    */
 
     /* Comparisons */
+    /*
     void p_int_eq_reif(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
       std::cerr << "int_eq_reif("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<")::"<<(*ann)<<"\n";
@@ -159,9 +165,10 @@ namespace FlatZinc {
       std::cerr << "int_lin_gt_reif("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<","<<(*ce[3])<<")::"<<(*ann)<<"\n";
     }
+    */
 
     /* arithmetic constraints */
-  
+    /*
     void p_int_plus(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
       std::cerr << "int_plus("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<")::"<<(*ann)<<"\n";
@@ -291,8 +298,10 @@ namespace FlatZinc {
       std::cerr << "bool_not("<<(*ce[0])<<","<<(*ce[1])
         <<")::"<<(*ann)<<"\n";
     }
+    */
   
     /* element constraints */
+    /*
     void p_array_int_element(FlatZincModel& s, const ConExpr& ce, 
                                  AST::Node* ann) {
       std::cerr << "array_int_element("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
@@ -303,8 +312,10 @@ namespace FlatZinc {
       std::cerr << "array_bool_element("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<")::"<<(*ann)<<"\n";
     }
+    */
   
     /* coercion constraints */
+    /*
     void p_bool2int(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
       std::cerr << "bool2int("<<(*ce[0])<<","<<(*ce[1])
         <<")::"<<(*ann)<<"\n";
@@ -318,10 +329,12 @@ namespace FlatZinc {
     void p_abs(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
       std::cerr << "abs("<<(*ce[0])<<","<<(*ce[1])<<")::"<<(*ann)<<"\n";
     }
+    */
 
     class IntPoster {
     public:
       IntPoster(void) {
+        /*
         registry().add("int_eq", &p_int_eq);
         registry().add("int_ne", &p_int_ne);
         registry().add("int_ge", &p_int_ge);
@@ -383,11 +396,13 @@ namespace FlatZinc {
         registry().add("array_var_bool_element", &p_array_bool_element);
         registry().add("bool2int", &p_bool2int);
         registry().add("int_in", &p_int_in);
+        */
 
       }
     };
     IntPoster __int_poster;
 
+    /*
     void p_set_union(FlatZincModel& s, const ConExpr& ce, AST::Node *ann) {
       std::cerr << "set_union("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<")::"<<(*ann)<<"\n";
@@ -489,6 +504,7 @@ namespace FlatZinc {
       }
     };
     SetPoster __set_poster;
+    */
 
   }
 }

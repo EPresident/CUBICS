@@ -42,6 +42,9 @@
 
 #include <vector>
 #include <string>
+
+#include <utils/Utils.h>
+
 using namespace std;
 
 namespace FlatZinc {
@@ -53,7 +56,8 @@ namespace FlatZinc {
   void
   FlatZincModel::init(int intVars, int boolVars, int setVars) {
     intVarCount = 0;
-    iv = std::vector<IntVar>(intVars);
+    MemUtils::malloc(&intVariables);
+    intVariables->initialize(VECTOR_INITIAL_CAPACITY);
     iv_introduced = std::vector<bool>(intVars);
     iv_boolalias = std::vector<int>(intVars);
     boolVarCount = 0;
@@ -62,16 +66,24 @@ namespace FlatZinc {
     setVarCount = 0;
     sv = std::vector<SetVar>(setVars);
     sv_introduced = std::vector<bool>(setVars);
+    MemUtils::malloc(&intConstraints);
+    intConstraints->initialize();
   }
 
   void
   FlatZincModel::newIntVar(IntVarSpec* vs) {
+    if (!vs->domain.some()->interval) {
+      LogUtils::error(__PRETTY_FUNCTION__, "Set domains not supported");
+    }
     if (vs->alias) {
-      iv[intVarCount++] = iv[vs->i];
+      //intVariables[intVarCount++] = intVariables[vs->i];
+      LogUtils::error(__PRETTY_FUNCTION__, "Alias variables not supported");
     } else {
+#ifndef NDEBUG
       std::cerr << "create new IntVar " << intVarCount << "\n";
-      /// TODO: create actual integer variable from vs
-      iv[intVarCount++] = IntVar();
+#endif
+      intVariables->push(vs->domain.some()->min, vs->domain.some()->max);
+      intVarCount += 1;
     }
     iv_introduced[intVarCount-1] = vs->introduced;
     iv_boolalias[intVarCount-1] = -1;
@@ -88,6 +100,8 @@ namespace FlatZinc {
 
   void
   FlatZincModel::newBoolVar(BoolVarSpec* vs) {
+    LogUtils::error(__PRETTY_FUNCTION__, "Boolean variables not supported");
+    /*
     if (vs->alias) {
       bv[boolVarCount++] = bv[vs->i];
     } else {
@@ -96,10 +110,13 @@ namespace FlatZinc {
       bv[boolVarCount++] = BoolVar();
     }
     bv_introduced[boolVarCount-1] = vs->introduced;
+    */
   }
 
   void
   FlatZincModel::newSetVar(SetVarSpec* vs) {
+    LogUtils::error(__PRETTY_FUNCTION__, "Set variables not supported");
+    /*
     if (vs->alias) {
       sv[setVarCount++] = sv[vs->i];
     } else {
@@ -108,6 +125,7 @@ namespace FlatZinc {
       sv[setVarCount++] = SetVar();
     }
     sv_introduced[setVarCount-1] = vs->introduced;
+    */
   }
 
   void
@@ -230,6 +248,12 @@ namespace FlatZinc {
   }
 
   FlatZincModel::~FlatZincModel(void) {
+    intVariables->deinitialize();
+    MemUtils::free(intVariables);
+
+    intConstraints->deinitialize();
+    MemUtils::free(intConstraints);
+
     delete _solveAnnotations;
   }
 
@@ -275,8 +299,7 @@ namespace FlatZinc {
     if (ai->isInt(k)) {
       out << k;
     } else if (ai->isIntVar()) {
-      // TODO: output actual variable
-      out << ai->getIntVar();
+      out << m.intVariables->domains.getMin(ai->getIntVar());
     } else if (ai->isBoolVar()) {
       // TODO: output actual variable
       out << ai->getBoolVar();
