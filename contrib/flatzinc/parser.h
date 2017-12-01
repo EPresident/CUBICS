@@ -39,7 +39,7 @@
 #define __FLATZINC_PARSER_HH__
 
 #include <cstring>
-#include "flatzinc.hh"
+#include <flatzinc/flatzinc.h>
 
 // This is a workaround for a bug in flex that only shows up
 // with the Microsoft C++ compiler
@@ -62,12 +62,12 @@ extern "C" int isatty(int);
 #include <iostream>
 #include <algorithm>
 
-#include "option.hh"
-#include "varspec.hh"
-#include "conexpr.hh"
-#include "ast.hh"
-#include "parser.tab.hh"
-#include "symboltable.hh"
+#include <flatzinc/option.h>
+#include <flatzinc/varspec.h>
+#include <flatzinc/conexpr.h>
+#include <flatzinc/ast.h>
+#include <flatzinc/parser.tab.h>
+#include <flatzinc/symboltable.h>
 
 namespace FlatZinc {
 

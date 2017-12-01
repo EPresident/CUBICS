@@ -39,8 +39,8 @@
  *
  */
 
-#include "registry.hh"
-#include "flatzinc.hh"
+#include <flatzinc/registry.h>
+#include <flatzinc/flatzinc.h>
 
 namespace FlatZinc {
 

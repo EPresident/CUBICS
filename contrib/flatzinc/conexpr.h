@@ -39,7 +39,7 @@
 #define __GECODE_FLATZINC_CONEXPR_HH__
 
 #include <string>
-#include "ast.hh"
+#include <flatzinc/ast.h>
 
 namespace FlatZinc {
 

@@ -35,8 +35,10 @@
  *
  */
 
-#include "flatzinc.hh"
-#include "registry.hh"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#include <flatzinc/flatzinc.h>
+#include <flatzinc/registry.h>
 
 #include <vector>
 #include <string>

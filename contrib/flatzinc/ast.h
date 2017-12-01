@@ -38,6 +38,9 @@
 #ifndef __GECODE_FLATZINC_AST_HH__
 #define __GECODE_FLATZINC_AST_HH__
 
+#pragma GCC diagnostic ignored "-Waddress"
+#pragma GCC diagnostic ignored "-Wnonnull-compare"
+
 #include <vector>
 #include <string>
 #include <iostream>
@@ -187,7 +190,7 @@ namespace FlatZinc { namespace AST {
         os << "s("<<min<<".."<<max<<")";
       else {
         os << "s({";
-        for (int i=0; i<s.size(); i++)
+        for (size_t i=0; i<s.size(); i++)
           os << s[i] << ",";
         os << "})";
       }

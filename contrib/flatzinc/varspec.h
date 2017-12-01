@@ -38,8 +38,8 @@
 #ifndef __GECODE_FLATZINC_VARSPEC__HH__
 #define __GECODE_FLATZINC_VARSPEC__HH__
 
-#include "option.hh"
-#include "ast.hh"
+#include <flatzinc/option.h>
+#include <flatzinc/ast.h>
 #include <vector>
 #include <iostream>
 
