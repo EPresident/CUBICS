@@ -9,10 +9,10 @@ set(PLATFORM "CPU" CACHE STRING "Available platforms")
 set_property(CACHE PLATFORM PROPERTY STRINGS CPU GPU)
 
 #Add headers directory
-include_directories("./include")
+include_directories("./include" "./contrib")
 
 #Collect source files
-file(GLOB_RECURSE SOURCES "./src/*.cu")
+file(GLOB_RECURSE SOURCES "./src/*.cu" "./contrib/*.cu")
 
 #Print informations
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
