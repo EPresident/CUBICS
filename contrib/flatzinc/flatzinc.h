@@ -46,6 +46,9 @@
 #include <flatzinc/ast.h>
 #include <flatzinc/varspec.h>
 
+#include <variables/IntVariables.h>
+#include <constraints/IntConstraints.h>
+
 /**
  * \namespace FlatZinc
  * \brief Interpreter for the %FlatZinc language
@@ -57,7 +60,6 @@
 
 namespace FlatZinc {
 
-  class IntVar {};
   class BoolVar {};
   class SetVar {};
 
@@ -93,7 +95,7 @@ namespace FlatZinc {
 
   public:
     /// The integer variables
-    std::vector<IntVar> iv;
+    IntVariables* intVariables;
     /// Indicates whether an integer variable is introduced by mzn2fzn
     std::vector<bool> iv_introduced;
     /// Indicates whether an integer variable aliases a Boolean variable
@@ -106,6 +108,8 @@ namespace FlatZinc {
     std::vector<SetVar> sv;
     /// Indicates whether a set variable is introduced by mzn2fzn
     std::vector<bool> sv_introduced;
+    /// The integer constraints
+    IntConstraints* intConstraints;
 
     /// Construct empty space
     FlatZincModel(void);
