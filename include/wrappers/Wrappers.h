@@ -16,5 +16,12 @@ namespace Wrappers
 
     //Integer constraints propagator
     cudaGlobal void propagateConstraints(IntConstraintsPropagator* propagator, bool* satisfiableModel);
+    cudaGlobal void setConstraintsToPropagate(IntConstraintsPropagator* propagator);
+    cudaGlobal void collectActions(IntConstraintsPropagator* propagator);
+    cudaGlobal void clearDomainsEvents(IntConstraintsPropagator* propagator);
+    cudaGlobal void updateDomains(IntConstraintsPropagator* propagator);
+    cudaGlobal void clearConstraintsToPropagate(IntConstraintsPropagator* propagator);
+    cudaGlobal void checkEmptyDomains(IntConstraintsPropagator* propagator);
+    cudaGlobal void checkSatisfiedConstraints(IntConstraintsPropagator* propagator);
 }
 #endif 

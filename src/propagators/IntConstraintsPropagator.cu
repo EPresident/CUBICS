@@ -2,6 +2,7 @@
 
 #include <propagators/IntConstraintsPropagator.h>
 #include <utils/Utils.h>
+#include <wrappers/Wrappers.h>
 
 void IntConstraintsPropagator::initialize(IntVariables* variables, IntConstraints* constraints)
 {
@@ -20,13 +21,17 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints()
 {
     someEmptyDomain = false;
 
-
     int domainsWithActionsCount = variables->domains.actions.domainsWithActions.getSize();
 
     //Instantiated variable
     if(domainsWithActionsCount == 1)
     {
-        setConstraintsToPropagate();
+#ifdef GPU
+    Wrappers::setConstraintsToPropagate<<<1,1>>>(this);
+    cudaDeviceSynchronize();
+#else
+    setConstraintsToPropagate();
+#endif
     }
     else if(domainsWithActionsCount == 0) //Preprocessing
     {
@@ -40,17 +45,43 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints()
     while (constraintToPropagate.getSize() > 0 and (not someEmptyDomain))
     {
         variables->domains.actions.domainsWithActions.clear();
+#ifdef GPU
+        Wrappers::collectActions<<<1,1>>>(this);
+        cudaDeviceSynchronize();
+#else
         collectActions();
+#endif
 
+#ifdef GPU
+        Wrappers::resetDomainsEvents<<<1,1>>>(this);
+        cudaDeviceSynchronize();
+#else
         resetDomainsEvents();
-        updateDomains();
+#endif
 
+#ifdef GPU
+        Wrappers::updateDomains<<<1,1>>>(this);
+        cudaDeviceSynchronize();
+#else
+        updateDomains();
+#endif
+
+#ifdef GPU
+        Wrappers::checkEmptyDomains<<<1,1>>>(this);
+        cudaDeviceSynchronize();
+#else
         checkEmptyDomains();
+#endif
 
         clearConstraintsToPropagate();
         if (not someEmptyDomain)
         {
+#ifdef GPU
+            Wrappers::setConstraintsToPropagate<<<1,1>>>(this);
+            cudaDeviceSynchronize();
+#else
             setConstraintsToPropagate();
+#endif
         }
     }
 
@@ -131,7 +162,12 @@ cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
 cudaDevice bool IntConstraintsPropagator::verifyConstraints()
 {
     allConstraintsSatisfied = true;
+#ifdef GPU
+    Wrappers::checkSatisfiedConstraints<<<1,1>>>(this);
+    cudaDeviceSynchronize();
+#else
     checkSatisfiedConstraints();
+#endif
 
     return allConstraintsSatisfied;
 }

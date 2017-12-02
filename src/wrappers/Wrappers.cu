@@ -28,4 +28,39 @@ cudaGlobal void Wrappers::propagateConstraints(IntConstraintsPropagator* propaga
 {
     *satisfiableModel = propagator->propagateConstraints();
 }
+
+cudaGlobal void Wrappers::setConstraintsToPropagate(IntConstraintsPropagator* propagator)
+{
+    propagator->setConstraintsToPropagate();
+}
+
+cudaGlobal void Wrappers::collectActions(IntConstraintsPropagator* propagator)
+{
+    propagator->collectActions();
+}
+
+cudaGlobal void Wrappers::clearDomainsEvents(IntConstraintsPropagator* propagator)
+{
+    propagator->clearDomainsEvents();
+}
+
+cudaGlobal void Wrappers::updateDomains(IntConstraintsPropagator* propagator)
+{
+    propagator->updateDomains();
+}
+
+cudaGlobal void Wrappers::clearConstraintsToPropagate(IntConstraintsPropagator* propagator)
+{
+    propagator->clearConstraintsToPropagate();
+}
+
+cudaGlobal void Wrappers::checkEmptyDomains(IntConstraintsPropagator* propagator)
+{
+    propagator->checkEmptyDomains();
+}
+
+cudaGlobal void Wrappers::checkSatisfiedConstraints(IntConstraintsPropagator* propagator)
+{
+    propagator->checkSatisfiedConstraints();
+}
 #endif 
