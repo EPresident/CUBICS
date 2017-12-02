@@ -38,8 +38,10 @@
 #ifndef __GECODE_FLATZINC_AST_HH__
 #define __GECODE_FLATZINC_AST_HH__
 
+#ifndef GPU
 #pragma GCC diagnostic ignored "-Waddress"
 #pragma GCC diagnostic ignored "-Wnonnull-compare"
+#endif
 
 #include <vector>
 #include <string>

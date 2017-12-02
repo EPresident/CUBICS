@@ -41,6 +41,10 @@
 %option yylineno
 
 %{
+#ifdef GPU
+#pragma diag_suppress set_but_not_used	
+#pragma diag_suppress code_is_unreachable
+#endif
 
 void yyerror(void*, const char*);
 
