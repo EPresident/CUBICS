@@ -1,4 +1,5 @@
 #include <searchers/IntBacktrackStack.h>
+#include <utils/KernelUtils.h>
 
 void IntBacktrackStack::initialize(IntDomainsRepresentations* representations)
 {
@@ -31,7 +32,12 @@ void IntBacktrackStack::deinitialize()
 
 cudaDevice void IntBacktrackStack::saveState(int backtrackLevel)
 {
+#ifdef GPU
+    int vi = KernelUtils::getTaskIndex();
+    if (vi >= 0 and vi < backupsStacks.size)
+#else
     for (int vi = 0; vi < backupsStacks.size; vi += 1)
+#endif
     {
         if (backtrackLevel == 0 || isDomainChanged(vi))
         {
@@ -49,7 +55,12 @@ cudaDevice void IntBacktrackStack::saveState(int backtrackLevel)
 
 cudaDevice void IntBacktrackStack::restoreState(int backtrackLevel)
 {
+#ifdef GPU
+    int vi = KernelUtils::getTaskIndex();
+    if (vi >= 0 and vi < backupsStacks.size)
+#else
     for (int vi = 0; vi < backupsStacks.size; vi += 1)
+#endif
     {
         if (isDomainChanged(vi))
         {
@@ -65,7 +76,12 @@ cudaDevice void IntBacktrackStack::restoreState(int backtrackLevel)
 
 cudaDevice void IntBacktrackStack::clearState(int backtrackLevel)
 {
+#ifdef GPU
+    int vi = KernelUtils::getTaskIndex();
+    if (vi >= 0 and vi < backupsStacks.size)
+#else
     for (int vi = 0; vi < backupsStacks.size; vi += 1)
+#endif
     {
         if (levelsStacks[vi].back() == backtrackLevel)
         {

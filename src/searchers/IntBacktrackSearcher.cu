@@ -19,6 +19,10 @@ void IntBacktrackSearcher::initialize(IntVariables* variables, IntConstraints* c
 
     backtrackingLevel = 0;
     backtrackingState = VariableNotChosen;
+
+#ifdef GPU
+    varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
+#endif
 }
 
 void IntBacktrackSearcher::deinitialize()
@@ -44,7 +48,7 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
             case VariableNotChosen:
             {
 #ifdef GPU
-                Wrappers::saveState<<<1, 1>>>(&stack, backtrackingLevel);
+                Wrappers::saveState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
                 cudaDeviceSynchronize();
 #else
                 stack.saveState(backtrackingLevel);
@@ -122,7 +126,7 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
             case ValueChecked:
             {
 #ifdef GPU
-                Wrappers::restoreState<<<1, 1>>>(&stack, backtrackingLevel);
+                Wrappers::restoreState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
                 cudaDeviceSynchronize();
 #else
                 stack.restoreState(backtrackingLevel);
@@ -136,7 +140,7 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                 else
                 {
 #ifdef GPU
-                    Wrappers::clearState<<<1, 1>>>(&stack, backtrackingLevel);
+                    Wrappers::clearState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
                     cudaDeviceSynchronize();
 #else
                     stack.clearState(backtrackingLevel);
