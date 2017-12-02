@@ -4,12 +4,14 @@
 #include <variables/IntVariables.h>
 
 #include <constraints/IntLinNe.h>
+#include <constraints/IntLinLe.h>
 
 struct IntConstraints
 {
     enum Type
     {
-        IntLinNe
+        IntLinNe,
+        IntLinLe
     };
 
     int count;
