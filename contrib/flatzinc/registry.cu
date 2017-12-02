@@ -116,11 +116,31 @@ namespace FlatZinc {
       std::cerr << "int_lt_reif("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<")::"<<(*ann)<<"\n";
     }
-
+    */
     void p_int_lin_eq(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
+#ifdef NDEBUG
       std::cerr << "int_lin_eq("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<")::"<<(*ann)<<"\n";
+#endif
+
+      s.intConstraints->push(IntConstraints::Type::IntLinEq);
+      int constraint = s.intConstraints->count - 1;
+
+
+      for (size_t vi = 0; vi < ce[1]->getArray()->a.size(); vi = vi + 1)
+      {
+          int variable = ce[1]->getArray()->a[vi]->getIntVar();
+          s.intVariables->constraints[variable].push_back(constraint);
+          s.intConstraints->variables[constraint].push_back(variable);
+      }
+      for (size_t pi = 0; pi < ce[0]->getArray()->a.size(); pi = pi + 1)
+      {
+          int parameter = ce[0]->getArray()->a[pi]->getInt();
+          s.intConstraints->parameters[constraint].push_back(parameter);
+      }
+      s.intConstraints->parameters[constraint].push_back(ce[2]->getInt());
     }
+    /*
     void p_int_lin_eq_reif(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
       std::cerr << "int_lin_eq_reif("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<","<<(*ce[3])<<")::"<<(*ann)<<"\n";
@@ -419,7 +439,9 @@ namespace FlatZinc {
         registry().add("int_gt_reif", &p_int_gt_reif);
         registry().add("int_le_reif", &p_int_le_reif);
         registry().add("int_lt_reif", &p_int_lt_reif);
+        */
         registry().add("int_lin_eq", &p_int_lin_eq);
+        /*
         registry().add("int_lin_eq_reif", &p_int_lin_eq_reif);
         */
         registry().add("int_lin_ne", &p_int_lin_ne);

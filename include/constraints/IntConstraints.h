@@ -7,6 +7,7 @@
 #include <constraints/IntLinLe.h>
 #include <constraints/IntOptLb.h>
 #include <constraints/IntOptUb.h>
+#include <constraints/IntLinEq.h>
 
 struct IntConstraints
 {
@@ -15,7 +16,8 @@ struct IntConstraints
         IntLinNe,
         IntLinLe,
         IntOptLb,
-        IntOptUb
+        IntOptUb,
+        IntLinEq
     };
 
     int count;
