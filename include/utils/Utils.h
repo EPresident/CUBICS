@@ -5,3 +5,4 @@
 #include <utils/BitUtils.h>
 #include <utils/AlgoUtils.h>
 #include <utils/GpuUtils.h>
+#include <utils/KernelUtils.h>
