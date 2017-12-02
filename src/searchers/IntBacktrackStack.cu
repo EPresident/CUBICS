@@ -1,4 +1,5 @@
 #include <searchers/IntBacktrackStack.h>
+#include <utils/KernelUtils.h>
 
 void IntBacktrackStack::initialize(IntDomainsRepresentations* representations)
 {
@@ -42,7 +43,12 @@ void IntBacktrackStack::deinitialize()
 
 cudaDevice void IntBacktrackStack::saveState(int backtrackLevel, MonotonicIntVector* changedDomains)
 {
+#ifdef GPU
+    int i = KernelUtils::getTaskIndex();
+    if (i >= 0 and i < changedDomains->getSize())
+#else
     for (int i = 0; i < changedDomains->getSize(); i += 1)
+#endif
     {
         int vi = changedDomains->at(i);
 
@@ -59,7 +65,12 @@ cudaDevice void IntBacktrackStack::saveState(int backtrackLevel, MonotonicIntVec
 
 cudaDevice void IntBacktrackStack::resetState(MonotonicIntVector* changedDomains)
 {
+#ifdef GPU
+    int i = KernelUtils::getTaskIndex();
+    if (i >= 0 and i < changedDomains->getSize())
+#else
     for (int i = 0; i < changedDomains->getSize(); i += 1)
+#endif
     {
         int vi = changedDomains->at(i);
 
@@ -73,7 +84,12 @@ cudaDevice void IntBacktrackStack::resetState(MonotonicIntVector* changedDomains
 
 cudaDevice void IntBacktrackStack::restorePreviousState(int backtrackLevel)
 {
+#ifdef GPU
+    int i = KernelUtils::getTaskIndex();
+    if (i >= 0 and i < levelsStacks[backtrackLevel].size)
+#else
     for (int i = 0; i < levelsStacks[backtrackLevel].size; i += 1)
+#endif
     {
         int vi = levelsStacks[backtrackLevel][i];
 

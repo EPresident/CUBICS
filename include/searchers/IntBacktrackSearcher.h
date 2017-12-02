@@ -36,6 +36,10 @@ struct IntBacktrackSearcher
 
     IntConstraintsPropagator propagator;
 
+#ifdef GPU
+    int varibalesBlockCount;
+#endif
+
     void initialize(IntVariables* variables, IntConstraints* constraints);
     void deinitialize();
 
