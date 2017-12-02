@@ -31,7 +31,8 @@ void IntBacktrackSearcher::deinitialize()
     propagator.deinitialize();
 }
 
-bool IntBacktrackSearcher::getNextSolution()
+
+cudaDevice bool IntBacktrackSearcher::getNextSolution()
 {
     bool solutionFound = false;
 

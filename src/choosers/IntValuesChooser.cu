@@ -9,7 +9,7 @@ void IntValuesChooser::initialzie(int type, IntVariables* variables)
     this->variables = variables;
 }
 
-bool IntValuesChooser::getFirstValue(int variable, int* firstValue)
+cudaDevice bool IntValuesChooser::getFirstValue(int variable, int* firstValue)
 {
     switch (type)
     {
@@ -21,7 +21,7 @@ bool IntValuesChooser::getFirstValue(int variable, int* firstValue)
     }
 }
 
-bool IntValuesChooser::getNextValue(int variable, int currentValue, int* nextValue)
+cudaDevice bool IntValuesChooser::getNextValue(int variable, int currentValue, int* nextValue)
 {
     switch (type)
     {

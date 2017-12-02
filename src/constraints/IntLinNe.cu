@@ -2,7 +2,7 @@
 #include <data_structures/Vector.h>
 #include <constraints/IntConstraints.h>
 
-void IntLinNe::propagate(IntConstraints* constraints, int index, IntVariables* variables)
+cudaDevice void IntLinNe::propagate(IntConstraints* constraints, int index, IntVariables* variables)
 {
     //Constraint propagation is performed when only one variable is not ground
 
@@ -40,7 +40,7 @@ void IntLinNe::propagate(IntConstraints* constraints, int index, IntVariables* v
     }
 }
 
-bool IntLinNe::satisfied(IntConstraints* constraints, int index, IntVariables* variables)
+cudaDevice bool IntLinNe::satisfied(IntConstraints* constraints, int index, IntVariables* variables)
 {
     //Satisfaction check is performed only when all variables is ground
 

@@ -16,7 +16,7 @@ void IntConstraintsPropagator::deinitialize()
     constraintToPropagate.deinitialize();
 }
 
-bool IntConstraintsPropagator::propagateConstraints()
+cudaDevice bool IntConstraintsPropagator::propagateConstraints()
 {
     someEmptyDomain = false;
     someConstraintsToPropagate = false;
@@ -45,7 +45,7 @@ bool IntConstraintsPropagator::propagateConstraints()
     return (not someEmptyDomain);
 }
 
-void IntConstraintsPropagator::setConstraintsToPropagate()
+cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
 {
     for (int ci = 0; ci < constraints->count; ci += 1)
     {
@@ -62,7 +62,7 @@ void IntConstraintsPropagator::setConstraintsToPropagate()
     }
 }
 
-void IntConstraintsPropagator::collectActions()
+cudaDevice void IntConstraintsPropagator::collectActions()
 {
     for (int ci = 0; ci < constraints->count; ci += 1)
     {
@@ -74,7 +74,7 @@ void IntConstraintsPropagator::collectActions()
     }
 }
 
-void IntConstraintsPropagator::clearDomainsEvents()
+cudaDevice void IntConstraintsPropagator::clearDomainsEvents()
 {
     for (int vi = 0; vi < variables->count; vi += 1)
     {
@@ -82,7 +82,7 @@ void IntConstraintsPropagator::clearDomainsEvents()
     }
 }
 
-void IntConstraintsPropagator::updateDomains()
+cudaDevice void IntConstraintsPropagator::updateDomains()
 {
     for (int vi = 0; vi < variables->count; vi += 1)
     {
@@ -90,7 +90,7 @@ void IntConstraintsPropagator::updateDomains()
     }
 }
 
-void IntConstraintsPropagator::clearConstraintsToPropagate()
+cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
 {
     for (int ci = 0; ci < constraints->count; ci += 1)
     {
@@ -98,7 +98,7 @@ void IntConstraintsPropagator::clearConstraintsToPropagate()
     }
 }
 
-void IntConstraintsPropagator::checkEmptyDomains()
+cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
 {
     for (int vi = 0; vi < variables->count; vi += 1)
     {
@@ -109,7 +109,7 @@ void IntConstraintsPropagator::checkEmptyDomains()
     }
 }
 
-bool IntConstraintsPropagator::verifyConstraints()
+cudaDevice bool IntConstraintsPropagator::verifyConstraints()
 {
     allConstraintsSatisfied = true;
     checkSatisfiedConstraints();
@@ -117,7 +117,7 @@ bool IntConstraintsPropagator::verifyConstraints()
     return allConstraintsSatisfied;
 }
 
-void IntConstraintsPropagator::checkSatisfiedConstraints()
+cudaDevice void IntConstraintsPropagator::checkSatisfiedConstraints()
 {
     for (int ci = 0; ci < constraints->count; ci += 1)
     {

@@ -29,7 +29,7 @@ void IntBacktrackStack::deinitialize()
     levelsStacks.deinitialize();
 }
 
-void IntBacktrackStack::saveState(int backtrackLevel)
+cudaDevice void IntBacktrackStack::saveState(int backtrackLevel)
 {
     for (int vi = 0; vi < backupsStacks.size; vi += 1)
     {
@@ -47,7 +47,7 @@ void IntBacktrackStack::saveState(int backtrackLevel)
     }
 }
 
-void IntBacktrackStack::restoreState(int backtrackLevel)
+cudaDevice void IntBacktrackStack::restoreState(int backtrackLevel)
 {
     for (int vi = 0; vi < backupsStacks.size; vi += 1)
     {
@@ -63,7 +63,7 @@ void IntBacktrackStack::restoreState(int backtrackLevel)
     }
 }
 
-void IntBacktrackStack::clearState(int backtrackLevel)
+cudaDevice void IntBacktrackStack::clearState(int backtrackLevel)
 {
     for (int vi = 0; vi < backupsStacks.size; vi += 1)
     {
@@ -75,7 +75,7 @@ void IntBacktrackStack::clearState(int backtrackLevel)
     }
 }
 
-bool IntBacktrackStack::isDomainChanged(int variable)
+cudaDevice bool IntBacktrackStack::isDomainChanged(int variable)
 {
     return backupsStacks[variable].versions.back() != representations->versions[variable];
 }

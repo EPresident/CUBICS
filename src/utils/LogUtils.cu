@@ -3,7 +3,7 @@
 
 #include <utils/LogUtils.h>
 
-void LogUtils::error(const char* function, const char* msg)
+cudaHostDevice void LogUtils::error(const char* function, const char* msg)
 {
     printf("%s:%s\n", function, msg);
 #ifdef __CUDA_ARCH__

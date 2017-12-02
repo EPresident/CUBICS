@@ -32,7 +32,7 @@ void IntDomainsActions::push()
     upperbounds.push_back(INT_MAX);
 }
 
-void IntDomainsActions::clear(int index)
+cudaDevice void IntDomainsActions::clear(int index)
 {
     elementsToRemove[index].clear();
 
@@ -40,7 +40,7 @@ void IntDomainsActions::clear(int index)
     upperbounds[index] = INT_MAX;
 }
 
-void IntDomainsActions::removeElement(int index, int val)
+cudaDevice void IntDomainsActions::removeElement(int index, int val)
 {
     if (lowerbounds[index] <= val and val <= upperbounds[index])
     {
@@ -48,12 +48,12 @@ void IntDomainsActions::removeElement(int index, int val)
     }
 }
 
-void IntDomainsActions::removeAnyGreaterThan(int index, int val)
+cudaDevice void IntDomainsActions::removeAnyGreaterThan(int index, int val)
 {
     upperbounds[index] = std::min(val, upperbounds[index]);
 }
 
-void IntDomainsActions::removeAnyLesserThan(int index, int val)
+cudaDevice void IntDomainsActions::removeAnyLesserThan(int index, int val)
 {
     lowerbounds[index] = std::max(val, lowerbounds[index]);
 }
