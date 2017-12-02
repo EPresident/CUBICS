@@ -35,7 +35,9 @@
  *
  */
 
+#ifndef GPU
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
 
 #include <flatzinc/flatzinc.h>
 #include <flatzinc/registry.h>
