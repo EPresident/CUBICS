@@ -63,7 +63,9 @@
 
 #include <cstring>
 
+#ifndef GPU
 #pragma GCC diagnostic ignored "-Wmisleading-indentation"
+#endif
 
 AnyOption::AnyOption()
 {
