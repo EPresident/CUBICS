@@ -4,3 +4,4 @@
 #include <utils/MemUtils.h>
 #include <utils/BitUtils.h>
 #include <utils/GpuUtils.h>
+#include <utils/KernelUtils.h>
