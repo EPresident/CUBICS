@@ -32,7 +32,7 @@ void IntConstraints::deinitialize()
     parameters.deinitialize();
 }
 
-void IntConstraints::propagate(int index, IntVariables* variables)
+cudaDevice void IntConstraints::propagate(int index, IntVariables* variables)
 {
     switch (types[index])
     {
@@ -44,7 +44,7 @@ void IntConstraints::propagate(int index, IntVariables* variables)
     }
 }
 
-bool IntConstraints::satisfied(int index, IntVariables* variables)
+cudaDevice bool IntConstraints::satisfied(int index, IntVariables* variables)
 {
     switch (types[index])
     {

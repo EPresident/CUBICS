@@ -16,7 +16,7 @@ void IntConstraintsPropagator::deinitialize()
     constraintToPropagate.deinitialize();
 }
 
-bool IntConstraintsPropagator::propagateConstraints()
+cudaDevice bool IntConstraintsPropagator::propagateConstraints()
 {
     someEmptyDomain = false;
 
@@ -60,7 +60,7 @@ bool IntConstraintsPropagator::propagateConstraints()
     return (not someEmptyDomain);
 }
 
-void IntConstraintsPropagator::setConstraintsToPropagate()
+cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
 {
     for (int vi = 0; vi < variables->domains.actions.domainsWithActions.getSize(); vi += 1)
     {
@@ -78,7 +78,7 @@ void IntConstraintsPropagator::setConstraintsToPropagate()
     }
 }
 
-void IntConstraintsPropagator::setAllConstraintsToPropagate()
+cudaDevice void IntConstraintsPropagator::setAllConstraintsToPropagate()
 {
     for(int ci = 0; ci < constraints->count; ci += 1)
     {
@@ -86,7 +86,8 @@ void IntConstraintsPropagator::setAllConstraintsToPropagate()
     }
 }
 
-void IntConstraintsPropagator::collectActions()
+
+cudaDevice void IntConstraintsPropagator::collectActions()
 {
     for (int ci = 0; ci < constraintToPropagate.getSize(); ci += 1)
     {
@@ -94,12 +95,13 @@ void IntConstraintsPropagator::collectActions()
     }
 }
 
-void IntConstraintsPropagator::resetDomainsEvents()
+
+cudaDevice void IntConstraintsPropagator::resetDomainsEvents()
 {
     AlgoUtils::fill(&variables->domains.events, static_cast<int>(IntDomains::EventTypes::None));
 }
 
-void IntConstraintsPropagator::updateDomains()
+cudaDevice void IntConstraintsPropagator::updateDomains()
 {
     for (int i = 0; i < variables->domains.actions.domainsWithActions.getSize(); i += 1)
     {
@@ -108,12 +110,12 @@ void IntConstraintsPropagator::updateDomains()
     }
 }
 
-void IntConstraintsPropagator::clearConstraintsToPropagate()
+cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
 {
     constraintToPropagate.clear();
 }
 
-void IntConstraintsPropagator::checkEmptyDomains()
+cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
 {
     for (int i = 0; i < variables->domains.actions.domainsWithActions.getSize(); i += 1)
     {
@@ -126,7 +128,7 @@ void IntConstraintsPropagator::checkEmptyDomains()
     }
 }
 
-bool IntConstraintsPropagator::verifyConstraints()
+cudaDevice bool IntConstraintsPropagator::verifyConstraints()
 {
     allConstraintsSatisfied = true;
     checkSatisfiedConstraints();
@@ -134,7 +136,7 @@ bool IntConstraintsPropagator::verifyConstraints()
     return allConstraintsSatisfied;
 }
 
-void IntConstraintsPropagator::checkSatisfiedConstraints()
+cudaDevice void IntConstraintsPropagator::checkSatisfiedConstraints()
 {
     for (int ci = 0; ci < constraints->count; ci += 1)
     {

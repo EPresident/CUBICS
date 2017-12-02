@@ -30,7 +30,7 @@ void IntDomains::push(int min, int max)
     actions.push();
 }
 
-void IntDomains::fixValue(int index, int value)
+cudaDevice void IntDomains::fixValue(int index, int value)
 {
     assert(representations.contain(index, value));
 
@@ -40,7 +40,7 @@ void IntDomains::fixValue(int index, int value)
     update(index);
 }
 
-void IntDomains::update(int index)
+cudaDevice void IntDomains::update(int index)
 {
     unsigned int previousVersion = representations.versions[index];
 

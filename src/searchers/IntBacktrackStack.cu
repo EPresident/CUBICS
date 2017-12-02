@@ -40,7 +40,7 @@ void IntBacktrackStack::deinitialize()
     levelsStacks.deinitialize();
 }
 
-void IntBacktrackStack::saveState(int backtrackLevel, MonotonicIntVector* changedDomains)
+cudaDevice void IntBacktrackStack::saveState(int backtrackLevel, MonotonicIntVector* changedDomains)
 {
     for (int i = 0; i < changedDomains->getSize(); i += 1)
     {
@@ -57,7 +57,7 @@ void IntBacktrackStack::saveState(int backtrackLevel, MonotonicIntVector* change
     }
 }
 
-void IntBacktrackStack::resetState(MonotonicIntVector* changedDomains)
+cudaDevice void IntBacktrackStack::resetState(MonotonicIntVector* changedDomains)
 {
     for (int i = 0; i < changedDomains->getSize(); i += 1)
     {
@@ -71,7 +71,7 @@ void IntBacktrackStack::resetState(MonotonicIntVector* changedDomains)
     }
 }
 
-void IntBacktrackStack::restorePreviousState(int backtrackLevel)
+cudaDevice void IntBacktrackStack::restorePreviousState(int backtrackLevel)
 {
     for (int i = 0; i < levelsStacks[backtrackLevel].size; i += 1)
     {

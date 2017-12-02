@@ -43,7 +43,7 @@ void IntDomainsRepresentations::push(int min, int max)
     bitvectors.back()[maxChunkIndex] &= mask;
 }
 
-void IntDomainsRepresentations::push(int min, int max, int offset, unsigned int version, Vector<unsigned int>* bitvector)
+cudaDevice void IntDomainsRepresentations::push(int min, int max, int offset, unsigned int version, Vector<unsigned int>* bitvector)
 {
     minimums.push_back(min);
     maximums.push_back(max);
@@ -53,7 +53,7 @@ void IntDomainsRepresentations::push(int min, int max, int offset, unsigned int 
     bitvectors.back().initialize(bitvector);
 }
 
-void IntDomainsRepresentations::pop()
+cudaDevice void IntDomainsRepresentations::pop()
 {
     minimums.pop_back();
     maximums.pop_back();
@@ -63,7 +63,7 @@ void IntDomainsRepresentations::pop()
     bitvectors.pop_back();
 }
 
-bool IntDomainsRepresentations::contain(int index, int val)
+cudaDevice bool IntDomainsRepresentations::contain(int index, int val)
 {
     if (minimums[index] <= val and val <= maximums[index])
     {
@@ -79,7 +79,7 @@ bool IntDomainsRepresentations::contain(int index, int val)
     }
 }
 
-bool IntDomainsRepresentations::getNextValue(int index, int val, int* nextVal)
+cudaDevice bool IntDomainsRepresentations::getNextValue(int index, int val, int* nextVal)
 {
     if (val < maximums[index])
     {
@@ -112,7 +112,7 @@ bool IntDomainsRepresentations::getNextValue(int index, int val, int* nextVal)
     }
 }
 
-bool IntDomainsRepresentations::getPrevValue(int index, int val, int* prevVal)
+cudaDevice bool IntDomainsRepresentations::getPrevValue(int index, int val, int* prevVal)
 {
     if (minimums[index] < val)
     {
@@ -145,7 +145,7 @@ bool IntDomainsRepresentations::getPrevValue(int index, int val, int* prevVal)
     }
 }
 
-void IntDomainsRepresentations::remove(int index, int val)
+cudaDevice void IntDomainsRepresentations::remove(int index, int val)
 {
     if (contain(index, val))
     {
@@ -179,7 +179,7 @@ void IntDomainsRepresentations::remove(int index, int val)
     }
 }
 
-void IntDomainsRepresentations::removeAnyLesserThan(int index, int val)
+cudaDevice void IntDomainsRepresentations::removeAnyLesserThan(int index, int val)
 {
     if (minimums[index] < val and val <= maximums[index])
     {
@@ -205,7 +205,7 @@ void IntDomainsRepresentations::removeAnyLesserThan(int index, int val)
 }
 
 
-void IntDomainsRepresentations::removeAnyGreaterThan(int index, int val)
+cudaDevice void IntDomainsRepresentations::removeAnyGreaterThan(int index, int val)
 {
     if (minimums[index] <= val and val < maximums[index])
     {
@@ -230,7 +230,7 @@ void IntDomainsRepresentations::removeAnyGreaterThan(int index, int val)
     }
 }
 
-void IntDomainsRepresentations::keepOnly(int index, int val)
+cudaDevice void IntDomainsRepresentations::keepOnly(int index, int val)
 {
     if (contain(index, val))
     {
@@ -244,7 +244,7 @@ void IntDomainsRepresentations::keepOnly(int index, int val)
     }
 }
 
-void IntDomainsRepresentations::removeAll(int index)
+cudaDevice void IntDomainsRepresentations::removeAll(int index)
 {
     minimums[index] = INT_MAX;
     maximums[index] = INT_MIN;

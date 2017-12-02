@@ -10,7 +10,7 @@ void IntVariablesChooser::initialzie(int type, IntVariables* variables, Vector<i
     this->backtrackState = backtrackState;
 }
 
-bool IntVariablesChooser::getVariable(int backtrackLevel, int* variable)
+cudaDevice bool IntVariablesChooser::getVariable(int backtrackLevel, int* variable)
 {
     switch (type)
     {
