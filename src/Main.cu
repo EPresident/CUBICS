@@ -27,6 +27,8 @@ int main(int argc, char * argv[])
     *satisfiableModel = true;
 
 #ifdef GPU
+    LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSetLimit(cudaLimitMallocHeapSize, HEAP_SIZE));
+
     Wrappers::propagateConstraints<<<1, 1>>>(&backtrackSearcher->propagator, satisfiableModel);
     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
 #else
