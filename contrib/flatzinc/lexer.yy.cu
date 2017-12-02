@@ -630,6 +630,10 @@ static const flex_int32_t yy_rule_can_match_eol[57] =
  *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
+#ifdef GPU
+#pragma diag_suppress set_but_not_used	
+#pragma diag_suppress code_is_unreachable
+#endif
 
 void yyerror(void*, const char*);
 
