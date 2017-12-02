@@ -2,6 +2,7 @@
 #pragma once
 
 #include <searchers/IntBacktrackSearcher.h>
+#include <propagators/IntConstraintsPropagator.h>
 
 namespace Wrappers
 {
@@ -12,5 +13,8 @@ namespace Wrappers
 
     //Integer backtracking searcher
     cudaGlobal void getNextSolution(IntBacktrackSearcher* backtrackSearcher, bool* solutionFound);
+
+    //Integer constraints propagator
+    cudaGlobal void propagateConstraints(IntConstraintsPropagator* propagator, bool* satisfiableModel);
 }
 #endif 

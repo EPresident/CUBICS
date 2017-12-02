@@ -26,7 +26,12 @@ int main(int argc, char * argv[])
     MemUtils::malloc(&satisfiableModel);
     *satisfiableModel = true;
 
+#ifdef GPU
+    Wrappers::propagateConstraints<<<1, 1>>>(&backtrackSearcher->propagator, satisfiableModel);
+    LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
+#else
     *satisfiableModel = backtrackSearcher->propagator.propagateConstraints();
+#endif
     if (*satisfiableModel)
     {
         bool* solutionFound;
