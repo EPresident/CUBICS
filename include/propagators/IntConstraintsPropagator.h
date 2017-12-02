@@ -17,15 +17,14 @@ struct IntConstraintsPropagator
     void initialize(IntVariables* variables, IntConstraints* constraints);
     void deinitialize();
 
-    bool propagateConstraints();
-    void setConstraintsToPropagate();
-    void setAllConstraintsToPropagate();
-    void collectActions();
-    void resetDomainsEvents();
-    void updateDomains();
-    void clearConstraintsToPropagate();
-    void checkEmptyDomains();
-
-    bool verifyConstraints();
-    void checkSatisfiedConstraints();
+    cudaDevice bool propagateConstraints();
+    cudaDevice void setConstraintsToPropagate();
+    cudaDevice void setAllConstraintsToPropagate();
+    cudaDevice void collectActions();
+    cudaDevice void resetDomainsEvents();
+    cudaDevice void updateDomains();
+    cudaDevice void clearConstraintsToPropagate();
+    cudaDevice void checkEmptyDomains();
+    cudaDevice bool verifyConstraints();
+    cudaDevice void checkSatisfiedConstraints();
 };

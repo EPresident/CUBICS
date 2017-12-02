@@ -14,10 +14,10 @@ struct IntBacktrackStack
     void initialize(IntDomainsRepresentations* representations);
     void deinitialize();
 
-    void saveState(int backtrackLevel, MonotonicIntVector* changedDomains);
-    void resetState(MonotonicIntVector* changedDomains);
-    void restorePreviousState(int backtrackLevel);
-    void clearState(int backtrackLevel);
+    cudaDevice void saveState(int backtrackLevel, MonotonicIntVector* changedDomains);
+    cudaDevice void resetState(MonotonicIntVector* changedDomains);
+    cudaDevice void restorePreviousState(int backtrackLevel);
+    cudaDevice void clearState(int backtrackLevel);
 
-    bool isDomainChanged(int variable);
+    cudaDevice bool isDomainChanged(int variable);
 };

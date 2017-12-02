@@ -39,6 +39,6 @@ struct IntBacktrackSearcher
     void initialize(IntVariables* variables, IntConstraints* constraints);
     void deinitialize();
 
-    bool getNextSolution();
+    cudaDevice bool getNextSolution();
 };
 

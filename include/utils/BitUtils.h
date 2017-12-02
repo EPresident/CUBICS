@@ -6,7 +6,7 @@
 
 namespace BitsUtils
 {
-    inline int getLeftmostOneIndex(unsigned int val)
+    cudaDevice inline int getLeftmostOneIndex(unsigned int val)
     {
 #ifdef __CUDA_ARCH__
         return __clz(val);
@@ -15,7 +15,7 @@ namespace BitsUtils
 #endif
     }
 
-    inline int getRightmostOneIndex(unsigned int val)
+    cudaDevice inline int getRightmostOneIndex(unsigned int val)
     {
 #ifdef __CUDA_ARCH__
         return UINT_BIT_SIZE - __ffs(val);
@@ -24,7 +24,7 @@ namespace BitsUtils
 #endif
     }
 
-    inline int getOnesCount(unsigned int val)
+    cudaDevice inline int getOnesCount(unsigned int val)
     {
 #ifdef GPU
         return __popc(val);
@@ -33,17 +33,17 @@ namespace BitsUtils
 #endif
     }
 
-    inline unsigned int getMask(int bitIndex)
+    cudaDevice inline unsigned int getMask(int bitIndex)
     {
         return 1 << (UINT_BIT_SIZE - 1 - bitIndex);
     }
 
-    inline unsigned int getLeftFilledMask(int bitIndex)
+    cudaHostDevice inline unsigned int getLeftFilledMask(int bitIndex)
     {
         return UINT_MAX << (UINT_BIT_SIZE - 1 - bitIndex);
     }
 
-    inline unsigned int getRightFilledMask(int bitIndex)
+    cudaDevice inline unsigned int getRightFilledMask(int bitIndex)
     {
         return UINT_MAX >> bitIndex;
     }

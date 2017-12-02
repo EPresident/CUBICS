@@ -1,10 +1,12 @@
 #pragma once
 
+#include <utils/GpuUtils.h>
+
 struct IntConstraints;
 struct IntVariables;
 
 namespace IntLinNe
 {
-    void propagate(IntConstraints* constraints, int index, IntVariables* variables);
-    bool satisfied(IntConstraints* constraints, int index, IntVariables* variables);
+    cudaDevice void propagate(IntConstraints* constraints, int index, IntVariables* variables);
+    cudaDevice bool satisfied(IntConstraints* constraints, int index, IntVariables* variables);
 }
