@@ -22,4 +22,10 @@ cudaGlobal void Wrappers::getNextSolution(IntBacktrackSearcher* backtrackSearche
 {
     *solutionFound = backtrackSearcher->getNextSolution();
 }
+
+//Integer constraints propagator
+cudaGlobal void Wrappers::propagateConstraints(IntConstraintsPropagator* propagator, bool* satisfiableModel)
+{
+    *satisfiableModel = propagator->propagateConstraints();
+}
 #endif 
