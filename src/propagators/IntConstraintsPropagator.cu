@@ -1,5 +1,6 @@
 #include <propagators/IntConstraintsPropagator.h>
 #include <utils/Utils.h>
+#include <wrappers/Wrappers.h>
 
 void IntConstraintsPropagator::initialize(IntVariables* variables, IntConstraints* constraints)
 {
@@ -20,25 +21,60 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints()
 {
     someEmptyDomain = false;
     someConstraintsToPropagate = false;
+#ifdef GPU
+    Wrappers::setConstraintsToPropagate<<<1,1>>>(this);
+    cudaDeviceSynchronize();
+#else
     setConstraintsToPropagate();
+#endif
 
     while (someConstraintsToPropagate and (not someEmptyDomain))
     {
+#ifdef GPU
+        Wrappers::collectActions<<<1,1>>>(this);
+        cudaDeviceSynchronize();
+#else
         collectActions();
+#endif
 
+#ifdef GPU
+        Wrappers::clearDomainsEvents<<<1,1>>>(this);
+        cudaDeviceSynchronize();
+#else
         clearDomainsEvents();
+#endif
 
+#ifdef GPU
+        Wrappers::updateDomains<<<1,1>>>(this);
+        cudaDeviceSynchronize();
+#else
         updateDomains();
+#endif
 
+#ifdef GPU
+        Wrappers::clearConstraintsToPropagate<<<1,1>>>(this);
+        cudaDeviceSynchronize();
+#else
         clearConstraintsToPropagate();
+#endif
 
         someEmptyDomain = false;
+#ifdef GPU
+        Wrappers::checkEmptyDomains<<<1,1>>>(this);
+        cudaDeviceSynchronize();
+#else
         checkEmptyDomains();
+#endif
 
         if (not someEmptyDomain)
         {
             someConstraintsToPropagate = false;
+#ifdef GPU
+            Wrappers::setConstraintsToPropagate<<<1,1>>>(this);
+            cudaDeviceSynchronize();
+#else
             setConstraintsToPropagate();
+#endif
         }
     }
 
@@ -112,7 +148,12 @@ cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
 cudaDevice bool IntConstraintsPropagator::verifyConstraints()
 {
     allConstraintsSatisfied = true;
+#ifdef GPU
+    Wrappers::checkSatisfiedConstraints<<<1,1>>>(this);
+    cudaDeviceSynchronize();
+#else
     checkSatisfiedConstraints();
+#endif
 
     return allConstraintsSatisfied;
 }
