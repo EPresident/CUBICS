@@ -1,5 +1,6 @@
 #include <searchers/IntBacktrackSearcher.h>
 #include <utils/Utils.h>
+#include <wrappers/Wrappers.h>
 
 void IntBacktrackSearcher::initialize(IntVariables* variables, IntConstraints* constraints)
 {
@@ -42,7 +43,12 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
         {
             case VariableNotChosen:
             {
+#ifdef GPU
+                Wrappers::saveState<<<1, 1>>>(&stack, backtrackingLevel);
+                cudaDeviceSynchronize();
+#else
                 stack.saveState(backtrackingLevel, &variables->domains.changes);
+#endif
                 variables->domains.changes.clear();
 
                 if (variablesChooser.getVariable(backtrackingLevel, &chosenVariable))
@@ -116,7 +122,12 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
 
             case ValueChecked:
             {
+#ifdef GPU
+                Wrappers::restoreState<<<1, 1>>>(&stack, &variables->domains.changes);
+                cudaDeviceSynchronize();
+#else
                 stack.resetState(&variables->domains.changes);
+#endif
                 variables->domains.changes.clear();
 
                 if (valuesChooser.getNextValue(chosenVariables.back(), chosenValues.back(), &chosenValue))
@@ -127,10 +138,17 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                 }
                 else
                 {
+
                     if(backtrackingLevel > 0)
                     {
+#ifdef GPU
+                        Wrappers::clearState<<<1, 1>>>(&stack, backtrackingLevel);
+                        cudaDeviceSynchronize();
+#else
                         stack.restorePreviousState(backtrackingLevel);
+#endif
                     }
+
 
                     backtrackingLevel -= 1;
                     chosenVariables.pop_back();
