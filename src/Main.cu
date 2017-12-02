@@ -5,6 +5,7 @@
 #include <flatzinc/flatzinc.h>
 #include <searchers/IntBacktrackSearcher.h>
 #include <options/Options.h>
+#include <wrappers/Wrappers.h>
 
 using namespace std;
 
@@ -35,7 +36,12 @@ int main(int argc, char * argv[])
         unsigned int solutionCount = 0;
         while (*solutionFound and solutionCount < opts.solutionsCount)
         {
+#ifdef GPU
+            Wrappers::getNextSolution<<<1, 1>>>(backtrackSearcher, solutionFound);
+            LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
+#else
             *solutionFound = backtrackSearcher->getNextSolution();
+#endif
             if (*solutionFound)
             {
                 solutionCount += 1;

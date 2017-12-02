@@ -16,4 +16,10 @@ cudaGlobal void Wrappers::clearState(IntBacktrackStack* backtrackStack, int back
 {
     backtrackStack->clearState(backtrackingLevel);
 }
+
+//Integer backtracking searcher
+cudaGlobal void Wrappers::getNextSolution(IntBacktrackSearcher* backtrackSearcher, bool* solutionFound)
+{
+    *solutionFound = backtrackSearcher->getNextSolution();
+}
 #endif 
