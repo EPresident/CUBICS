@@ -7,7 +7,7 @@
 namespace MemUtils
 {
     template<typename T>
-    void malloc(T** ptr, int count = 1)
+    cudaHostDevice void malloc(T** ptr, int count = 1)
     {
 #if defined(__CUDA_ARCH__) || !defined(GPU)
         *ptr = static_cast<T*>(std::malloc(sizeof(T) * count));
@@ -18,7 +18,7 @@ namespace MemUtils
     }
 
     template<typename T>
-    void free(T* ptr)
+    cudaHostDevice void free(T* ptr)
     {
 #if defined(__CUDA_ARCH__) || !defined(GPU)
         std::free(ptr);
@@ -28,13 +28,13 @@ namespace MemUtils
     }
 
     template<typename T>
-    void memcpy(T* dst, T* src, int count)
+    cudaHostDevice void memcpy(T* dst, T* src, int count)
     {
         std::memcpy(dst, src, sizeof(T) * count);
     }
 
     template<typename T>
-    void realloc(T** ptr, int newCount, int oldCount)
+    cudaHostDevice void realloc(T** ptr, int newCount, int oldCount)
     {
 #ifdef GPU
         T* ptrTmp;

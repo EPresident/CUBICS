@@ -4,5 +4,5 @@
 
 namespace IntInOrderVariablesChooser
 {
-    bool getVariable(IntVariablesChooser* variablesChooser, int backtrackLevel, int* variable);
+    cudaDevice bool getVariable(IntVariablesChooser* variablesChooser, int backtrackLevel, int* variable);
 }

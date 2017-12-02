@@ -24,6 +24,6 @@ struct IntConstraints
 
     void push(int type);
 
-    void propagate(int index, IntVariables* variables);
-    bool satisfied(int index, IntVariables* variables);
+    cudaDevice void propagate(int index, IntVariables* variables);
+    cudaDevice bool satisfied(int index, IntVariables* variables);
 };

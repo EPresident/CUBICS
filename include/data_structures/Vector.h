@@ -13,53 +13,53 @@ struct Vector
     int capacity;
     T* data;
 
-    void initialize(int initialCapacity = VECTOR_INITIAL_CAPACITY)
+    cudaHostDevice void initialize(int initialCapacity = VECTOR_INITIAL_CAPACITY)
     {
         size = 0;
         capacity = initialCapacity;
         MemUtils::malloc<T>(&data, initialCapacity);
     }
 
-    void initialize(Vector<T>* other)
+    cudaHostDevice void initialize(Vector<T>* other)
     {
         initialize(other->size);
         copy(other);
     }
 
-    void deinitialize()
+    cudaHostDevice void deinitialize()
     {
         MemUtils::free<T>(data);
     }
 
-    inline T& operator[](int index)
+    cudaHostDevice inline T& operator[](int index)
     {
         assert(index < size);
 
         return *(data + index);
     }
 
-    const inline T& operator[](int index) const
+    cudaHostDevice const inline T& operator[](int index) const
     {
         assert(index < size);
 
         return *(data + index);
     }
 
-    inline T& at(int index)
+    cudaHostDevice inline T& at(int index)
     {
         assert(index < size);
 
         return *(data + index);
     }
 
-    const inline T& at(int index) const
+    cudaHostDevice const inline T& at(int index) const
     {
         assert(index < size);
 
         return *(data + index);
     }
 
-    void copy(Vector<T>* other)
+    cudaHostDevice void copy(Vector<T>* other)
     {
         if (capacity < other->size)
         {
@@ -71,7 +71,7 @@ struct Vector
         size = other->size;
     }
 
-    void resize(int count)
+    cudaHostDevice void resize(int count)
     {
         if (capacity < count)
         {
@@ -82,19 +82,19 @@ struct Vector
         size = count;
     }
 
-    void resize_by_one()
+    cudaHostDevice void resize_by_one()
     {
         resize(size + 1);
     }
 
-    inline T& back()
+    cudaHostDevice inline T& back()
     {
         assert(size > 0);
 
         return *(data + (size - 1));
     }
 
-    void push_back(T t)
+    cudaHostDevice void push_back(T t)
     {
         if (size == capacity)
         {
@@ -106,14 +106,14 @@ struct Vector
         size += 1;
     }
 
-    inline void pop_back()
+    cudaHostDevice inline void pop_back()
     {
         assert(size > 0);
 
         size -= 1;
     }
 
-    void clear()
+    cudaHostDevice void clear()
     {
         size = 0;
     }

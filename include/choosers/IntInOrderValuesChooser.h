@@ -4,6 +4,6 @@
 
 namespace IntInOrderValuesChooser
 {
-    bool getFirstValue(IntValuesChooser* valuesChooser, int variable, int* firstValue);
-    bool getNextValue(IntValuesChooser* valuesChooser, int variable, int currentValue, int* nextValue);
+    cudaDevice bool getFirstValue(IntValuesChooser* valuesChooser, int variable, int* firstValue);
+    cudaDevice bool getNextValue(IntValuesChooser* valuesChooser, int variable, int currentValue, int* nextValue);
 }

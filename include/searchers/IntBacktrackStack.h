@@ -14,9 +14,9 @@ struct IntBacktrackStack
     void initialize(IntDomainsRepresentations* representations);
     void deinitialize();
 
-    void saveState(int backtrackLevel);
-    void restoreState(int backtrackLevel);
-    void clearState(int backtrackLevel);
+    cudaDevice void saveState(int backtrackLevel);
+    cudaDevice void restoreState(int backtrackLevel);
+    cudaDevice void clearState(int backtrackLevel);
 
-    bool isDomainChanged(int variable);
+    cudaDevice bool isDomainChanged(int variable);
 };

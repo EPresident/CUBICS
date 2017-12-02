@@ -22,32 +22,32 @@ struct IntDomains
     void push(int min, int max);
 
 
-    inline bool isEmpty(int index)
+    cudaDevice inline bool isEmpty(int index)
     {
         return representations.isEmpty(index);
     }
 
-    inline bool isSingleton(int index)
+    cudaDevice inline bool isSingleton(int index)
     {
         return representations.isSingleton(index);
     }
 
-    inline unsigned int getApproximateCardinality(int index)
+    cudaDevice inline unsigned int getApproximateCardinality(int index)
     {
         return representations.getApproximateCardinality(index);
     }
 
-    inline int getMin(int index)
+    cudaHostDevice inline int getMin(int index)
     {
         return representations.minimums[index];
     }
 
-    inline int getMax(int index)
+    cudaDevice inline int getMax(int index)
     {
         return representations.maximums[index];
     }
 
-    void fixValue(int index, int value);
+    cudaDevice void fixValue(int index, int value);
 
-    void updateDomain(int index);
+    cudaDevice void updateDomain(int index);
 };

@@ -17,5 +17,5 @@ struct IntVariablesChooser
 
     void initialzie(int type, IntVariables* variables, Vector<int>* backtrackState);
 
-    bool getVariable(int backtrackLevel, int* variable);
+    cudaDevice bool getVariable(int backtrackLevel, int* variable);
 };

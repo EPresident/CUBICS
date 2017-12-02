@@ -13,9 +13,9 @@ struct IntDomainsActions
 
     void push();
 
-    void clear(int index);
+    cudaDevice void clear(int index);
 
-    void removeElement(int index, int val);
-    void removeAnyLesserThan(int index, int val);
-    void removeAnyGreaterThan(int index, int val);
+    cudaDevice void removeElement(int index, int val);
+    cudaDevice void removeAnyLesserThan(int index, int val);
+    cudaDevice void removeAnyGreaterThan(int index, int val);
 };
