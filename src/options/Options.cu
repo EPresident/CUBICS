@@ -13,6 +13,7 @@ void Options::initialize()
     solutionsCount = 1;
     inputFile = nullptr;
     opt = new AnyOption();
+    printStats = false;
 }
 
 void Options::parseOptions(int argc, char * argv[])
@@ -30,6 +31,7 @@ void Options::parseOptions(int argc, char * argv[])
     opt->setOption('n');
     opt->setFlag("help", 'h');
     opt->setFlag("version");
+    opt->setFlag('s');
 
     opt->processCommandArgs(argc, argv);
 
@@ -59,6 +61,11 @@ void Options::parseOptions(int argc, char * argv[])
     {
         cout << name << " " << version << endl ;
         exit(EXIT_SUCCESS);
+    }
+
+    if (opt->getValue('s') != nullptr)
+    {
+        printStats = true;
     }
 
     char* arg  = opt->getArgv(0);

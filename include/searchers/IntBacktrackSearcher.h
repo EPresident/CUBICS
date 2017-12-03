@@ -7,6 +7,7 @@
 #include <propagators/IntConstraintsPropagator.h>
 #include <searchers/IntBacktrackStack.h>
 #include <flatzinc/flatzinc.h>
+#include <statistics/Statistics.h>
 
 struct IntBacktrackSearcher
 {
@@ -53,7 +54,9 @@ struct IntBacktrackSearcher
     int optVariable;
     int optConstraint;
 
-    void initialize(FlatZinc::FlatZincModel* fzModel);
+    Statistics* stats;
+
+    void initialize(FlatZinc::FlatZincModel* fzModel, Statistics* stats);
     void deinitialize();
 
     cudaDevice bool getNextSolution();

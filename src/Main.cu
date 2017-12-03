@@ -7,11 +7,17 @@
 #include <searchers/IntBacktrackSearcher.h>
 #include <options/Options.h>
 #include <wrappers/Wrappers.h>
+#include <statistics/Statistics.h>
 
 using namespace std;
 
 int main(int argc, char * argv[])
 {
+    Statistics* stats;
+    MemUtils::malloc(&stats);
+    stats->initialize();
+    stats->setStartElaborationTime();
+
     Options opts;
     opts.initialize();
     opts.parseOptions(argc, argv);
@@ -21,11 +27,13 @@ int main(int argc, char * argv[])
 
     IntBacktrackSearcher* backtrackSearcher;
     MemUtils::malloc(&backtrackSearcher);
-    backtrackSearcher->initialize(fzModel);
+    backtrackSearcher->initialize(fzModel, stats);
 
     bool* satisfiableModel;
     MemUtils::malloc(&satisfiableModel);
     *satisfiableModel = true;
+
+    stats->setStartSolveTime();
 
 #ifdef GPU
     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSetLimit(cudaLimitMallocHeapSize, HEAP_SIZE));
@@ -41,14 +49,12 @@ int main(int argc, char * argv[])
         MemUtils::malloc(&solutionFound);
         *solutionFound = true;
 
-        unsigned int solutionCount = 0;
-
         bool onlyBestSolution = false;
         onlyBestSolution = onlyBestSolution or backtrackSearcher->searchType == IntBacktrackSearcher::SearchType::Maximization;
         onlyBestSolution = onlyBestSolution or backtrackSearcher->searchType == IntBacktrackSearcher::SearchType::Minimization;
         onlyBestSolution = onlyBestSolution and opts.solutionsCount == 1;
         std::stringstream bestSolution;
-        while (*solutionFound and (solutionCount < opts.solutionsCount or onlyBestSolution))
+        while (*solutionFound and (stats->solutionsCount < opts.solutionsCount or onlyBestSolution))
         {
 #ifdef GPU
             Wrappers::getNextSolution<<<1, 1>>>(backtrackSearcher, solutionFound);
@@ -61,14 +67,14 @@ int main(int argc, char * argv[])
 
                 if (not onlyBestSolution)
                 {
-                    solutionCount += 1;
+                    stats->solutionsCount += 1;
 
                     printer.print(cout, *fzModel);
                     cout << "----------" << endl;
                 }
                 else
                 {
-                    solutionCount = 1;
+                    stats->solutionsCount = 1;
 
                     bestSolution.str("");
                     printer.print(bestSolution, *fzModel);
@@ -82,7 +88,7 @@ int main(int argc, char * argv[])
             cout << "----------" << endl;
         }
 
-        if (solutionCount > 0)
+        if (stats->solutionsCount > 0)
         {
             cout << "==========" << endl;
         }
@@ -94,6 +100,14 @@ int main(int argc, char * argv[])
     else
     {
         cout << "=====UNSATISFIABLE=====" << endl;
+    }
+
+    stats->setEndSolveTime();
+    stats->setEndElaborationTime();
+
+    if(opts.printStats)
+    {
+        stats->print();
     }
 
     return EXIT_SUCCESS;

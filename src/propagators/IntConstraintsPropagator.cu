@@ -2,7 +2,7 @@
 #include <utils/Utils.h>
 #include <wrappers/Wrappers.h>
 
-void IntConstraintsPropagator::initialize(IntVariables* variables, IntConstraints* constraints)
+void IntConstraintsPropagator::initialize(IntVariables* variables, IntConstraints* constraints, Statistics* stats)
 {
     this->variables = variables;
     this->constraints = constraints;
@@ -16,6 +16,8 @@ void IntConstraintsPropagator::initialize(IntVariables* variables, IntConstraint
     constraintsBlockCount = KernelUtils::getBlockCount(constraints->count, DEFAULT_BLOCK_SIZE);
     variablesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
 #endif
+
+    this->stats = stats;
 }
 
 void IntConstraintsPropagator::deinitialize()
@@ -104,6 +106,8 @@ cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
             {
                 constraintToPropagate[ci] = true;
                 someConstraintsToPropagate = true;
+                stats->propagationsCount += 1;
+                break;
             }
         }
     }

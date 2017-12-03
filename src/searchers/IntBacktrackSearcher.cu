@@ -2,7 +2,7 @@
 #include <utils/Utils.h>
 #include <wrappers/Wrappers.h>
 
-void IntBacktrackSearcher::initialize(FlatZinc::FlatZincModel* fzModel)
+void IntBacktrackSearcher::initialize(FlatZinc::FlatZincModel* fzModel, Statistics* stats)
 {
     variables = fzModel->intVariables;
     constraints = fzModel->intConstraints;
@@ -10,12 +10,12 @@ void IntBacktrackSearcher::initialize(FlatZinc::FlatZincModel* fzModel)
     chosenVariables.initialize(variables->count);
     chosenValues.initialize(variables->count);
 
-    stack.initialize(&variables->domains.representations);
+    stack.initialize(&variables->domains.representations, stats);
 
     variablesChooser.initialzie(IntVariablesChooser::InOrder, variables, &chosenVariables);
     valuesChooser.initialzie(IntValuesChooser::InOrder, variables);
 
-    propagator.initialize(variables, constraints);
+    propagator.initialize(variables, constraints, stats);
 
     backtrackingLevel = 0;
     backtrackingState = VariableNotChosen;
@@ -53,6 +53,11 @@ void IntBacktrackSearcher::initialize(FlatZinc::FlatZincModel* fzModel)
         optVariable = -1;
         optConstraint = -1;
     }
+
+    this->stats = stats;
+    stats->varibalesCount = variables->count;
+    stats->constraintsCount = constraints->count;
+
 }
 
 void IntBacktrackSearcher::deinitialize()
@@ -116,6 +121,7 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                     chosenValues.push_back(variables->domains.getMin(chosenVariables.back()));
                     backtrackingState = SuccessfulPropagation;
                 }
+                stats->nodesCount += 1;
             }
                 break;
             case ValueChosen:
@@ -129,6 +135,7 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                 else
                 {
                     backtrackingState = ValueChecked;
+                    stats->failuresCount += 1;
                 }
             }
                 break;
@@ -147,6 +154,10 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                     if (propagator.verifyConstraints())
                     {
                         solutionFound = true;
+                    }
+                    else
+                    {
+                        stats->failuresCount += 1;
                     }
                 }
             }

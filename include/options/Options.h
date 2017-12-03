@@ -10,6 +10,7 @@ struct Options
     unsigned int solutionsCount;
     char* inputFile;
     AnyOption *opt;
+    bool printStats;
 
     void initialize();
     void parseOptions(int argc, char * argv[]);

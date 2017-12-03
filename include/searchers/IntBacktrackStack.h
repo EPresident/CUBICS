@@ -3,6 +3,7 @@
 #include <data_structures/Vector.h>
 #include <variables/IntVariables.h>
 #include <domains/IntDomainsRepresentations.h>
+#include <statistics/Statistics.h>
 
 struct IntBacktrackStack
 {
@@ -11,7 +12,9 @@ struct IntBacktrackStack
     Vector<IntDomainsRepresentations> backupsStacks;
     Vector<Vector<int>> levelsStacks;
 
-    void initialize(IntDomainsRepresentations* representations);
+    Statistics* stats;
+
+    void initialize(IntDomainsRepresentations* representations, Statistics* stats);
     void deinitialize();
 
     cudaDevice void saveState(int backtrackLevel);
