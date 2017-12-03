@@ -49,7 +49,7 @@ void Statistics::setEndSolveTime()
 
 void Statistics::print()
 {
-    std::cout.precision(4);
+    std::cout.precision(3);
     std::cout.setf(std::ios::fixed, std::ios::floatfield);
 
     std::cout << "%% Total time: ";
