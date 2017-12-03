@@ -3,6 +3,8 @@
 #include <data_structures/MonotonicIntVector.h>
 #include <variables/IntVariables.h>
 #include <constraints/IntConstraints.h>
+#include <statistics/Statistics.h>
+
 
 struct IntConstraintsPropagator
 {
@@ -20,7 +22,9 @@ struct IntConstraintsPropagator
     int variablesBlockCount;
 #endif
 
-    void initialize(IntVariables* variables, IntConstraints* constraints);
+    Statistics* stats;
+
+    void initialize(IntVariables* variables, IntConstraints* constraints, Statistics* stats);
     void deinitialize();
 
     cudaDevice bool propagateConstraints();

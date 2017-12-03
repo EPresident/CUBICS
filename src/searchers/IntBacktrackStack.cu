@@ -1,7 +1,9 @@
+#include <algorithm>
+
 #include <searchers/IntBacktrackStack.h>
 #include <utils/KernelUtils.h>
 
-void IntBacktrackStack::initialize(IntDomainsRepresentations* representations)
+void IntBacktrackStack::initialize(IntDomainsRepresentations* representations, Statistics* stats)
 {
     this->representations = representations;
 
@@ -24,10 +26,14 @@ void IntBacktrackStack::initialize(IntDomainsRepresentations* representations)
     {
         levelsStacks[vi].initialize();
     }
+
     for (int vi = 0; vi < backupsStacks.size; vi += 1)
     {
         levelsStacks[0].push_back(vi);
     }
+
+
+    this->stats = stats;
 }
 
 void IntBacktrackStack::deinitialize()
@@ -60,6 +66,13 @@ cudaDevice void IntBacktrackStack::saveState(int backtrackLevel, MonotonicIntVec
         backupsStacks[vi].push(min, max, offset, version, bitvector);
 
         levelsStacks[backtrackLevel].push_back(vi);
+
+
+    }
+
+    if(changedDomains->getSize() > 0)
+    {
+        stats->maxStackSize = std::max(stats->maxStackSize, backtrackLevel);
     }
 }
 
