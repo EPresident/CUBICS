@@ -63,3 +63,21 @@ cudaDevice bool IntLinNe::satisfied(IntConstraints* constraints, int index, IntV
 
     return value != constraintParameters->back();
 }
+
+cudaDevice bool IntLinNe::toPropagate(IntConstraints* constraints, int index, IntVariables* variables)
+{
+
+    Vector<int>* constraintVariables = &constraints->variables[index];
+
+    for (int vi = 0; vi < constraintVariables->size; vi += 1)
+    {
+        int variable = constraintVariables->at(vi);
+
+        if (variables->domains.isEventOccurred(variable, IntDomains::EventTypes::Istantiated))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

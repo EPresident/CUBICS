@@ -7,11 +7,15 @@ struct IntDomains
 {
     enum EventTypes
     {
-        None,
-        Changed
+        None = 0x0,
+        Initialized = 0x1,
+        ValueRemoved = 0x10,
+        IncreasedMinimum = 0x100,
+        DecreasedMaximums = 0x1000,
+        Istantiated = 0x10000
     };
 
-    Vector<int> events;
+    Vector<unsigned int> events;
 
     IntDomainsRepresentations representations;
     IntDomainsActions actions;
@@ -47,7 +51,21 @@ struct IntDomains
         return representations.maximums[index];
     }
 
+    cudaDevice void setEvent(int index, unsigned int event);
+
+    cudaDevice inline void clearEvent(int index)
+    {
+        events[index] = None;
+    }
+
+    cudaDevice bool isEventOccurred(int index, unsigned int event)
+    {
+        return events[index] & event;
+    }
+
     cudaDevice void fixValue(int index, int value);
 
     cudaDevice void updateDomain(int index);
+
+
 };

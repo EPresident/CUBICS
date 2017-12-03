@@ -98,17 +98,11 @@ cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
     for (int ci = 0; ci < constraints->count; ci += 1)
 #endif
     {
-        for (int vi = 0; vi < constraints->variables[ci].size; vi += 1)
+        if (constraints->toPropagate(ci, variables))
         {
-            int event = variables->domains.events[constraints->variables[ci][vi]];
-
-            if (event == IntDomains::EventTypes::Changed)
-            {
-                constraintToPropagate[ci] = true;
-                someConstraintsToPropagate = true;
-                stats->propagationsCount += 1;
-                break;
-            }
+            constraintToPropagate[ci] = true;
+            someConstraintsToPropagate = true;
+            stats->propagationsCount += 1;
         }
     }
 }
@@ -139,7 +133,7 @@ cudaDevice void IntConstraintsPropagator::clearDomainsEvents()
     for (int vi = 0; vi < variables->count; vi += 1)
 #endif
     {
-        variables->domains.events[vi] = IntDomains::EventTypes::None;
+        variables->domains.clearEvent(vi);
     }
 }
 

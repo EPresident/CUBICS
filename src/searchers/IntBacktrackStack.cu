@@ -54,7 +54,7 @@ cudaDevice void IntBacktrackStack::saveState(int backtrackLevel)
 
             levelsStacks[vi].push_back(backtrackLevel);
 
-            stats->maxStackSize = std::max(stats->maxStackSize, levelsStacks[vi].size);
+            stats->maxStackSize = std::max(stats->maxStackSize, levelsStacks[vi].size - 1);
         }
     }
 }

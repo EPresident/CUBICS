@@ -76,3 +76,24 @@ cudaDevice bool IntConstraints::satisfied(int index, IntVariables* variables)
             return false;
     }
 }
+
+cudaDevice bool IntConstraints::toPropagate(int index, IntVariables* variables)
+{
+    switch (types[index])
+    {
+        case IntLinNe:
+            return IntLinNe::toPropagate(this, index, variables);
+        case IntLinLe:
+            return IntLinLe::toPropagate(this, index, variables);
+//        case IntOptLb:
+//            return IntOptLb::toPropagate(this, index, variables);
+//        case IntOptUb:
+//            return IntOptUb::toPropagate(this, index, variables);
+//        case IntLinEq:
+//            return IntLinEq::toPropagate(this, index, variables);
+//            break;
+        default:
+            LogUtils::error(__PRETTY_FUNCTION__, "Invalid constraint type");
+            return false;
+    }
+}

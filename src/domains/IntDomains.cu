@@ -18,7 +18,7 @@ void IntDomains::deinitialize()
 
 void IntDomains::push(int min, int max)
 {
-    events.push_back(EventTypes::Changed);
+    events.push_back(EventTypes::Initialized);
 
     representations.push(min, max);
     actions.push();
@@ -29,12 +29,37 @@ cudaDevice void IntDomains::fixValue(int index, int value)
     assert(representations.contain(index, value));
 
     representations.keepOnly(index, value);
-    events[index] = EventTypes::Changed;
+
+    setEvent(index, ValueRemoved);
+    setEvent(index, Istantiated);
 }
+
+cudaDevice void IntDomains::setEvent(int index, unsigned int event)
+ {
+     switch(event)
+     {
+         case ValueRemoved:
+             events[index] |= ValueRemoved;
+             break;
+         case IncreasedMinimum:
+             events[index] |= IncreasedMinimum;
+             break;
+         case DecreasedMaximums:
+             events[index] |= DecreasedMaximums;
+             break;
+         case Istantiated:
+             events[index] |= Istantiated;
+             break;
+         default:
+             LogUtils::error(__PRETTY_FUNCTION__, "Invalid event type");
+     }
+ }
 
 cudaDevice void IntDomains::updateDomain(int index)
 {
     unsigned int previousVersion = representations.versions[index];
+    int previousMin = getMin(index);
+    int previousMax = getMax(index);
 
     representations.removeAnyGreaterThan(index, actions.upperbounds[index]);
 
@@ -49,10 +74,21 @@ cudaDevice void IntDomains::updateDomain(int index)
 
     if (previousVersion != representations.versions[index])
     {
-        events[index] = EventTypes::Changed;
-    }
-    else
-    {
-        events[index] = EventTypes::None;
+        setEvent(index, ValueRemoved);
+
+        if (previousMin < getMin(index))
+        {
+            setEvent(index, IncreasedMinimum);
+        }
+
+        if (getMax(index) < previousMax)
+        {
+            setEvent(index, DecreasedMaximums);
+        }
+
+        if (isSingleton(index))
+        {
+            setEvent(index, Istantiated);
+        }
     }
 }
