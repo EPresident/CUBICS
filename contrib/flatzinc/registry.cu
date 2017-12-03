@@ -118,7 +118,7 @@ namespace FlatZinc {
     }
     */
     void p_int_lin_eq(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
-#ifdef NDEBUG
+#ifndef NDEBUG
       std::cerr << "int_lin_eq("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<")::"<<(*ann)<<"\n";
 #endif
