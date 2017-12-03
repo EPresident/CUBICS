@@ -89,9 +89,8 @@ cudaDevice bool IntConstraints::toPropagate(int index, IntVariables* variables)
 //            return IntOptLb::toPropagate(this, index, variables);
 //        case IntOptUb:
 //            return IntOptUb::toPropagate(this, index, variables);
-//        case IntLinEq:
-//            return IntLinEq::toPropagate(this, index, variables);
-//            break;
+        case IntLinEq:
+            return IntLinEq::toPropagate(this, index, variables);
         default:
             LogUtils::error(__PRETTY_FUNCTION__, "Invalid constraint type");
             return false;

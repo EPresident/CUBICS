@@ -90,3 +90,31 @@ cudaDevice bool IntLinEq::satisfied(IntConstraints* constraints, int index, IntV
 
     return sum == constraintParameters->back();
 }
+
+cudaDevice bool IntLinEq::toPropagate(IntConstraints* constraints, int index, IntVariables* variables)
+{
+
+    Vector<int>* constraintVariables = &constraints->variables[index];
+
+    for (int vi = 0; vi < constraintVariables->size; vi += 1)
+    {
+        int variable = constraintVariables->at(vi);
+
+        if (variables->domains.isEventOccurred(variable, IntDomains::EventTypes::ValueRemoved))
+        {
+            return true;
+        }
+
+        if (variables->domains.isEventOccurred(variable, IntDomains::EventTypes::DecreasedMaximums))
+        {
+            return true;
+        }
+
+        if (variables->domains.isEventOccurred(variable, IntDomains::EventTypes::Initialized))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
