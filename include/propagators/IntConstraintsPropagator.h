@@ -28,12 +28,13 @@ struct IntConstraintsPropagator
     void initialize(IntVariables* variables, IntConstraints* constraints, Statistics* stats);
     void deinitialize();
 
-    cudaDevice bool propagateConstraints();
+    cudaDevice bool propagateConstraints(bool forcePropagation = false);
     cudaDevice void setConstraintsToPropagate();
     cudaDevice void collectActions();
     cudaDevice void clearDomainsEvents();
     cudaDevice void updateDomains();
     cudaHostDevice void clearConstraintsToPropagate();
+    cudaHostDevice void setAllConstraintsToPropagate();
     cudaDevice void checkEmptyDomains();
 
     cudaDevice bool verifyConstraints();

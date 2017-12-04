@@ -25,17 +25,25 @@ void IntConstraintsPropagator::deinitialize()
     constraintToPropagate.deinitialize();
 }
 
-cudaDevice bool IntConstraintsPropagator::propagateConstraints()
+cudaDevice bool IntConstraintsPropagator::propagateConstraints(bool forcePropagation)
 {
     someEmptyDomain = false;
-    someConstraintsToPropagate = false;
+
+    if(not forcePropagation)
+    {
+    	someConstraintsToPropagate = false;
 #ifdef GPU
     Wrappers::setConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
     cudaDeviceSynchronize();
 #else
-    setConstraintsToPropagate();
+    	setConstraintsToPropagate();
 #endif
-
+    }
+    else
+    {
+    	someConstraintsToPropagate = true;
+    	setAllConstraintsToPropagate();
+    }
     while (someConstraintsToPropagate and (not someEmptyDomain))
     {
 #ifdef GPU
@@ -160,6 +168,19 @@ cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
 #endif
     {
         constraintToPropagate[ci] = false;
+    }
+}
+
+cudaHostDevice void IntConstraintsPropagator::setAllConstraintsToPropagate()
+{
+#if defined(GPU) && defined (__CUDA_ARCH__)
+    int ci = KernelUtils::getTaskIndex();
+    if (ci >= 0 and ci < constraints->count)
+#else
+    for (int ci = 0; ci < constraints->count; ci += 1)
+#endif
+    {
+        constraintToPropagate[ci] = true;
     }
 }
 

@@ -99,5 +99,6 @@ cudaDevice void IntBacktrackStack::clearState(int backtrackLevel)
 
 cudaDevice bool IntBacktrackStack::isDomainChanged(int variable)
 {
-    return backupsStacks[variable].versions.back() != representations->versions[variable];
+    bool changed = backupsStacks[variable].versions.back() != representations->versions[variable];
+    return changed;
 }

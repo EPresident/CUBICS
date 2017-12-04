@@ -8,11 +8,10 @@ struct IntDomains
     enum EventTypes
     {
         None = 0x0,
-        Initialized = 0x1,
-        ValueRemoved = 0x10,
-        IncreasedMinimum = 0x100,
-        DecreasedMaximums = 0x1000,
-        Istantiated = 0x10000
+        ValueRemoved = 0x1,
+        IncreasedMinimum = 0x10,
+        DecreasedMaximums = 0x100,
+        Istantiated = 0x1000
     };
 
     Vector<unsigned int> events;
@@ -58,9 +57,9 @@ struct IntDomains
         events[index] = None;
     }
 
-    cudaDevice bool isEventOccurred(int index, unsigned int event)
+    cudaDevice static inline bool isEventOccurred(unsigned int event, EventTypes eventType)
     {
-        return events[index] & event;
+        return event & eventType;
     }
 
     cudaDevice void fixValue(int index, int value);

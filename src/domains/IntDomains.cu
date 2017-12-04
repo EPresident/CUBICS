@@ -18,7 +18,7 @@ void IntDomains::deinitialize()
 
 void IntDomains::push(int min, int max)
 {
-    events.push_back(EventTypes::Initialized);
+    events.push_back(EventTypes::None);
 
     representations.push(min, max);
     actions.push();
@@ -30,7 +30,6 @@ cudaDevice void IntDomains::fixValue(int index, int value)
 
     representations.keepOnly(index, value);
 
-    setEvent(index, ValueRemoved);
     setEvent(index, Istantiated);
 }
 

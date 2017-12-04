@@ -41,8 +41,9 @@ int main(int argc, char * argv[])
     Wrappers::propagateConstraints<<<1, 1>>>(&backtrackSearcher->propagator, satisfiableModel);
     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
 #else
-    *satisfiableModel = backtrackSearcher->propagator.propagateConstraints();
+    *satisfiableModel = backtrackSearcher->propagator.propagateConstraints(true);
 #endif
+
     if (*satisfiableModel)
     {
         bool* solutionFound;
