@@ -99,7 +99,6 @@ cudaDevice bool IntLinEq::toPropagate(IntConstraints* constraints, int index, In
     for (int vi = 0; vi < constraintVariables->size; vi += 1)
     {
         int variable = constraintVariables->at(vi);
-        int coefficient = constraintParameters->at(vi);
         unsigned int event = variables->domains.events[variable];
 
         if (IntDomains::isEventOccurred(event, IntDomains::EventTypes::Istantiated))
@@ -107,13 +106,14 @@ cudaDevice bool IntLinEq::toPropagate(IntConstraints* constraints, int index, In
             return true;
         }
 
-        if(coefficient > 0)
+        if(IntDomains::isEventOccurred(event, IntDomains::EventTypes::IncreasedMinimum))
         {
-            return IntDomains::isEventOccurred(event, IntDomains::EventTypes::IncreasedMinimum);
+            return true;
         }
-        else
+
+        if(IntDomains::isEventOccurred(event, IntDomains::EventTypes::DecreasedMaximums))
         {
-            return IntDomains::isEventOccurred(event, IntDomains::EventTypes::DecreasedMaximums);
+            return true;
         }
     }
 
