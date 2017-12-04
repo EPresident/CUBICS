@@ -94,7 +94,6 @@ cudaDevice bool IntLinEq::satisfied(IntConstraints* constraints, int index, IntV
 cudaDevice bool IntLinEq::toPropagate(IntConstraints* constraints, int index, IntVariables* variables)
 {
     Vector<int>* constraintVariables = &constraints->variables[index];
-    Vector<int>* constraintParameters = &constraints->parameters[index];
 
     for (int vi = 0; vi < constraintVariables->size; vi += 1)
     {
