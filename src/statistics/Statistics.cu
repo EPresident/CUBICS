@@ -84,7 +84,7 @@ void Statistics::print()
 
     std::cout << "%% Propagations: " << propagationsCount << std::endl;
     std::cout << "%% Nodes: " << nodesCount << std::endl;
-    std::cout << "%% Failuers: " << failuresCount << std::endl;
+    std::cout << "%% Failures: " << failuresCount << std::endl;
     std::cout << "%% Max stack size: " << maxStackSize << std::endl;
 
 }
