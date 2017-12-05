@@ -110,6 +110,7 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                         chosenValues.push_back(chosenValue);
                         variables->domains.fixValue(chosenVariables.back(), chosenValues.back());
                         backtrackingState = ValueChosen;
+                        stats->nodesCount += 1;
                     }
                     else
                     {
@@ -121,7 +122,6 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                     chosenValues.push_back(variables->domains.getMin(chosenVariables.back()));
                     backtrackingState = SuccessfulPropagation;
                 }
-                stats->nodesCount += 1;
             }
                 break;
             case ValueChosen:
@@ -154,10 +154,6 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                     if (propagator.verifyConstraints())
                     {
                         solutionFound = true;
-                    }
-                    else
-                    {
-                        stats->failuresCount += 1;
                     }
                 }
             }
