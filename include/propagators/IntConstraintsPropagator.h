@@ -11,10 +11,14 @@ struct IntConstraintsPropagator
     IntVariables* variables;
     IntConstraints* constraints;
 
-    Vector<bool> constraintToPropagate;
+    Vector<int> constraintToPropagate;
+    Vector<bool> checkedConstraintToPropagateMask;
+    Vector<int> checkedConstraintToPropagate;
+
+    Vector<bool> changedDomainsMask;
+    Vector<int> changedDomains;
 
     bool someEmptyDomain;
-    bool someConstraintsToPropagate;
     bool allConstraintsSatisfied;
 
 #ifdef GPU
@@ -36,6 +40,10 @@ struct IntConstraintsPropagator
     cudaHostDevice void clearConstraintsToPropagate();
     cudaHostDevice void setAllConstraintsToPropagate();
     cudaDevice void checkEmptyDomains();
+
+    cudaDevice void clearChangedDomains();
+    cudaDevice void updateChangedDomains();
+
 
     cudaDevice bool verifyConstraints();
     cudaDevice void checkSatisfiedConstraints();

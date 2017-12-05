@@ -3,9 +3,10 @@
 #include <searchers/IntBacktrackStack.h>
 #include <utils/KernelUtils.h>
 
-void IntBacktrackStack::initialize(IntDomainsRepresentations* representations, Statistics* stats)
+void IntBacktrackStack::initialize(IntVariables* variables, Statistics* stats)
 {
-    this->representations = representations;
+    this->variables = variables;
+    representations = &variables->domains.representations;
 
     backupsStacks.initialize(representations->bitvectors.size);
     backupsStacks.resize(representations->bitvectors.size);
@@ -16,8 +17,15 @@ void IntBacktrackStack::initialize(IntDomainsRepresentations* representations, S
     for (int vi = 0; vi < backupsStacks.size; vi += 1)
     {
         backupsStacks[vi].initialize(VECTOR_INITIAL_CAPACITY);
+        int min = representations->minimums[vi];
+        int max = representations->maximums[vi];
+        int offset = representations->offsets[vi];
+        int version = representations->versions[vi];
+        Vector<unsigned int>* bitvector = &representations->bitvectors[vi];
+        backupsStacks[vi].push(min, max, offset, version, bitvector);
 
         levelsStacks[vi].initialize();
+        levelsStacks[vi].push_back(0);
     }
 
     this->stats = stats;
@@ -34,22 +42,23 @@ void IntBacktrackStack::deinitialize()
     levelsStacks.deinitialize();
 }
 
-cudaDevice void IntBacktrackStack::saveState(int backtrackLevel)
+cudaDevice void IntBacktrackStack::saveState(int backtrackLevel, Vector<int>* changedDomains)
 {
 #ifdef GPU
     int vi = KernelUtils::getTaskIndex();
     if (vi >= 0 and vi < backupsStacks.size)
 #else
-    for (int vi = 0; vi < backupsStacks.size; vi += 1)
+    for (int vi = 0; vi < changedDomains->size; vi += 1)
 #endif
     {
-        if (backtrackLevel == 0 || isDomainChanged(vi))
+    	int variable = changedDomains->at(vi);
+        if (isDomainChanged(variable))
         {
-            int min = representations->minimums[vi];
-            int max = representations->maximums[vi];
-            int offset = representations->offsets[vi];
-            int version = representations->versions[vi];
-            Vector<unsigned int>* bitvector = &representations->bitvectors[vi];
+            int min = representations->minimums[variable];
+            int max = representations->maximums[variable];
+            int offset = representations->offsets[variable];
+            int version = representations->versions[variable];
+            Vector<unsigned int>* bitvector = &representations->bitvectors[variable];
             backupsStacks[vi].push(min, max, offset, version, bitvector);
 
             levelsStacks[vi].push_back(backtrackLevel);
@@ -59,22 +68,23 @@ cudaDevice void IntBacktrackStack::saveState(int backtrackLevel)
     }
 }
 
-cudaDevice void IntBacktrackStack::restoreState(int backtrackLevel)
+cudaDevice void IntBacktrackStack::restoreState(int backtrackLevel, Vector<int>* changedDomains)
 {
 #ifdef GPU
     int vi = KernelUtils::getTaskIndex();
     if (vi >= 0 and vi < backupsStacks.size)
 #else
-    for (int vi = 0; vi < backupsStacks.size; vi += 1)
+    for (int vi = 0; vi < changedDomains->size; vi += 1)
 #endif
     {
-        if (isDomainChanged(vi))
+    	int variable = changedDomains->at(vi);
+        if (isDomainChanged(variable))
         {
-            representations->minimums[vi] = backupsStacks[vi].minimums.back();
-            representations->maximums[vi] = backupsStacks[vi].maximums.back();
-            representations->offsets[vi] = backupsStacks[vi].offsets.back();
-            representations->versions[vi] = backupsStacks[vi].versions.back();
-            representations->bitvectors[vi].copy(&backupsStacks[vi].bitvectors.back());
+            representations->minimums[variable] = backupsStacks[variable].minimums.back();
+            representations->maximums[variable] = backupsStacks[variable].maximums.back();
+            representations->offsets[variable] = backupsStacks[variable].offsets.back();
+            representations->versions[variable] = backupsStacks[variable].versions.back();
+            representations->bitvectors[variable].copy(&backupsStacks[variable].bitvectors.back());
 
         }
     }

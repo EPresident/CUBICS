@@ -10,7 +10,7 @@ void IntBacktrackSearcher::initialize(FlatZinc::FlatZincModel* fzModel, Statisti
     chosenVariables.initialize(variables->count);
     chosenValues.initialize(variables->count);
 
-    stack.initialize(&variables->domains.representations, stats);
+    stack.initialize(variables, stats);
 
     variablesChooser.initialzie(IntVariablesChooser::InOrder, variables, &chosenVariables);
     valuesChooser.initialzie(IntValuesChooser::InOrder, variables);
@@ -85,7 +85,7 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                 Wrappers::saveState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
                 cudaDeviceSynchronize();
 #else
-                stack.saveState(backtrackingLevel);
+                stack.saveState(backtrackingLevel, &propagator.changedDomains);
 #endif
 
                 if (variablesChooser.getVariable(backtrackingLevel, &chosenVariable))
@@ -108,7 +108,10 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                     if (valuesChooser.getFirstValue(chosenVariables.back(), &chosenValue))
                     {
                         chosenValues.push_back(chosenValue);
+                        propagator.clearChangedDomains();
                         variables->domains.fixValue(chosenVariables.back(), chosenValues.back());
+                        propagator.changedDomains.push_back(chosenVariables.back());
+                        propagator.changedDomainsMask[chosenVariables.back()] = true;
                         backtrackingState = ValueChosen;
                         stats->nodesCount += 1;
                     }
@@ -165,12 +168,15 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                 Wrappers::restoreState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
                 cudaDeviceSynchronize();
 #else
-                stack.restoreState(backtrackingLevel);
+                stack.restoreState(backtrackingLevel, &propagator.changedDomains);
 #endif
                 if (valuesChooser.getNextValue(chosenVariables.back(), chosenValues.back(), &chosenValue))
                 {
                     chosenValues.back() = chosenValue;
+                    propagator.clearChangedDomains();
                     variables->domains.fixValue(chosenVariables.back(), chosenValues.back());
+                    propagator.changedDomains.push_back(chosenVariables.back());
+                    propagator.changedDomainsMask[chosenVariables.back()] = true;
                     backtrackingState = ValueChosen;
                     stats->nodesCount += 1;
                 }

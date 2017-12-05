@@ -5,6 +5,9 @@
 
 struct IntDomainsActions
 {
+	Vector<bool> changedDomainsMask;
+	Vector<int> changedDomains;
+
     Vector<Vector<int>> elementsToRemove;
     Vector<int> lowerbounds;
     Vector<int> upperbounds;
@@ -17,9 +20,12 @@ struct IntDomainsActions
 
     void push();
 
-    cudaDevice void clear(int index);
+    cudaDevice void clearActions();
+    cudaDevice void clearChangedDomains();
+    cudaDevice void clearAll();
 
     cudaDevice void removeElement(int index, int val);
     cudaDevice void removeAnyLesserThan(int index, int val);
     cudaDevice void removeAnyGreaterThan(int index, int val);
+    cudaDevice void keepOnly(int index, int val);
 };

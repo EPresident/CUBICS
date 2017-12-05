@@ -28,9 +28,9 @@ cudaDevice void IntDomains::fixValue(int index, int value)
 {
     assert(representations.contain(index, value));
 
-    representations.keepOnly(index, value);
+    actions.keepOnly(index,value);
 
-    setEvent(index, Istantiated);
+    updateDomain(index);
 }
 
 cudaDevice void IntDomains::setEvent(int index, unsigned int event)
@@ -68,8 +68,6 @@ cudaDevice void IntDomains::updateDomain(int index)
     {
         representations.remove(index, actions.elementsToRemove[index][ei]);
     }
-
-    actions.clear(index);
 
     if (previousVersion != representations.versions[index])
     {

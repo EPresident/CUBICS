@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <propagators/IntConstraintsPropagator.h>
 #include <utils/Utils.h>
 #include <wrappers/Wrappers.h>
@@ -8,8 +10,14 @@ void IntConstraintsPropagator::initialize(IntVariables* variables, IntConstraint
     this->constraints = constraints;
 
     constraintToPropagate.initialize(constraints->count);
-    constraintToPropagate.resize(constraints->count);
-    clearConstraintsToPropagate();
+
+    checkedConstraintToPropagateMask.initialize(constraints->count);
+    checkedConstraintToPropagateMask.resize(constraints->count);
+    checkedConstraintToPropagate.initialize(constraints->count);
+
+    changedDomainsMask.initialize(constraints->count);
+    changedDomainsMask.resize(constraints->count);
+    changedDomains.initialize(constraints->count);
 
 #ifdef GPU
     constraintsBlockCountDivergence = KernelUtils::getBlockCount(constraints->count, DEFAULT_BLOCK_SIZE, true);
@@ -23,6 +31,7 @@ void IntConstraintsPropagator::initialize(IntVariables* variables, IntConstraint
 void IntConstraintsPropagator::deinitialize()
 {
     constraintToPropagate.deinitialize();
+    checkedConstraintToPropagateMask.deinitialize();
 }
 
 cudaDevice bool IntConstraintsPropagator::propagateConstraints(bool forcePropagation)
@@ -31,66 +40,32 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints(bool forcePropaga
 
     if(not forcePropagation)
     {
-    	someConstraintsToPropagate = false;
-#ifdef GPU
-    Wrappers::setConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
-    cudaDeviceSynchronize();
-#else
     	setConstraintsToPropagate();
-#endif
     }
     else
     {
-    	someConstraintsToPropagate = true;
     	setAllConstraintsToPropagate();
     }
-    while (someConstraintsToPropagate and (not someEmptyDomain))
+
+    while (constraintToPropagate.size > 0 and (not someEmptyDomain))
     {
-#ifdef GPU
-        Wrappers::collectActions<<<constraintsBlockCountDivergence, DEFAULT_BLOCK_SIZE>>>(this);
-        cudaDeviceSynchronize();
-#else
+    	clearDomainsEvents();
+    	variables->domains.actions.clearAll();
+
         collectActions();
-#endif
+        this->updateChangedDomains();
 
-#ifdef GPU
-        Wrappers::clearDomainsEvents<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
-        cudaDeviceSynchronize();
-#else
-        clearDomainsEvents();
-#endif
-
-#ifdef GPU
-        Wrappers::updateDomains<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
-        cudaDeviceSynchronize();
-#else
-        updateDomains();
-#endif
-
-#ifdef GPU
-        Wrappers::clearConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
-        cudaDeviceSynchronize();
-#else
         clearConstraintsToPropagate();
-#endif
 
-        someEmptyDomain = false;
-#ifdef GPU
-        Wrappers::checkEmptyDomains<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
-        cudaDeviceSynchronize();
-#else
+        updateDomains();
+
         checkEmptyDomains();
-#endif
+
 
         if (not someEmptyDomain)
         {
-            someConstraintsToPropagate = false;
-#ifdef GPU
-            Wrappers::setConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
-            cudaDeviceSynchronize();
-#else
+
             setConstraintsToPropagate();
-#endif
         }
     }
 
@@ -103,15 +78,29 @@ cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
     int ci = KernelUtils::getTaskIndex();
     if (ci >= 0 and ci < constraints->count)
 #else
-    for (int ci = 0; ci < constraints->count; ci += 1)
+    for (int vi = 0; vi < variables->domains.actions.changedDomains.size; vi += 1)
 #endif
     {
-        if (constraints->toPropagate(ci, variables))
-        {
-            constraintToPropagate[ci] = true;
-            someConstraintsToPropagate = true;
-            stats->propagationsCount += 1;
-        }
+    	int variable = variables->domains.actions.changedDomains[vi];
+    	if(variables->domains.events[variable] != IntDomains::EventTypes::None)
+    	{
+    		for(int ci = 0; ci < variables->constraints[variable].size; ci += 1)
+    		{
+    			int constraint = variables->constraints[variable][ci];
+    			if(not checkedConstraintToPropagateMask[constraint])
+    			{
+    				checkedConstraintToPropagateMask[constraint] = true;
+    				checkedConstraintToPropagate.push_back(constraint);
+
+    				if (constraints->toPropagate(constraint, variables))
+					{
+						constraintToPropagate.push_back(constraint);
+						stats->propagationsCount += 1;
+					}
+    			}
+    		}
+
+    	}
     }
 }
 
@@ -121,14 +110,11 @@ cudaDevice void IntConstraintsPropagator::collectActions()
     int ci = KernelUtils::getTaskIndex(true);
     if (ci >= 0 and ci < constraints->count)
 #else
-    for (int ci = 0; ci < constraints->count; ci += 1)
+    for (int ci = 0; ci < constraintToPropagate.size; ci += 1)
 #endif
     {
-        if (constraintToPropagate[ci])
-        {
-            constraints->propagate(ci, variables);
-            constraintToPropagate[ci] = false;
-        }
+		int constraint = constraintToPropagate[ci];
+		constraints->propagate(constraint, variables);
     }
 }
 
@@ -138,10 +124,10 @@ cudaDevice void IntConstraintsPropagator::clearDomainsEvents()
     int vi = KernelUtils::getTaskIndex();
     if (vi >= 0 and vi < variables->count)
 #else
-    for (int vi = 0; vi < variables->count; vi += 1)
+    for (int vi = 0; vi < variables->domains.actions.changedDomains.size; vi += 1)
 #endif
     {
-        variables->domains.clearEvent(vi);
+        variables->domains.clearEvent(variables->domains.actions.changedDomains[vi]);
     }
 }
 
@@ -151,11 +137,14 @@ cudaDevice void IntConstraintsPropagator::updateDomains()
     int vi = KernelUtils::getTaskIndex();
     if (vi >= 0 and vi < variables->count)
 #else
-    for (int vi = 0; vi < variables->count; vi += 1)
+    for (int vi = 0; vi < variables->domains.actions.changedDomains.size; vi += 1)
 #endif
     {
-        variables->domains.updateDomain(vi);
+    	int variable = variables->domains.actions.changedDomains[vi];
+        variables->domains.updateDomain(variable);
     }
+    variables->domains.actions.clearActions();
+
 }
 
 cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
@@ -164,11 +153,14 @@ cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
     int ci = KernelUtils::getTaskIndex();
     if (ci >= 0 and ci < constraints->count)
 #else
-    for (int ci = 0; ci < constraints->count; ci += 1)
+    for (int ci = 0; ci < checkedConstraintToPropagate.size; ci += 1)
 #endif
     {
-        constraintToPropagate[ci] = false;
+        checkedConstraintToPropagateMask[checkedConstraintToPropagate[ci]] = false;
+
     }
+    checkedConstraintToPropagate.clear();
+    constraintToPropagate.clear();
 }
 
 cudaHostDevice void IntConstraintsPropagator::setAllConstraintsToPropagate()
@@ -180,7 +172,34 @@ cudaHostDevice void IntConstraintsPropagator::setAllConstraintsToPropagate()
     for (int ci = 0; ci < constraints->count; ci += 1)
 #endif
     {
-        constraintToPropagate[ci] = true;
+    	checkedConstraintToPropagateMask[ci] = true;
+    	checkedConstraintToPropagate.push_back(ci);
+        constraintToPropagate.push_back(ci);
+    }
+}
+
+cudaDevice void IntConstraintsPropagator::clearChangedDomains()
+{
+	for(int vi = 0; vi < changedDomains.size; vi += 1)
+	{
+		int index = changedDomains[vi];
+		changedDomainsMask[index] = false;
+	}
+
+	changedDomains.clear();
+}
+
+cudaDevice void IntConstraintsPropagator::updateChangedDomains()
+{
+    for (int vi = 0; vi < variables->domains.actions.changedDomains.size; vi += 1)
+    {
+    	int variable = variables->domains.actions.changedDomains[vi];
+
+    	if(not changedDomainsMask[variable])
+    	{
+    		changedDomainsMask[variable] = true;
+    		changedDomains.push_back(variable);
+    	}
     }
 }
 
@@ -190,10 +209,10 @@ cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
     int vi = KernelUtils::getTaskIndex();
     if (vi >= 0 and vi < variables->count)
 #else
-    for (int vi = 0; vi < variables->count; vi += 1)
+    for (int vi = 0; vi < variables->domains.actions.changedDomains.size; vi += 1)
 #endif
     {
-        if (variables->domains.isEmpty(vi))
+        if (variables->domains.isEmpty(variables->domains.actions.changedDomains[vi]))
         {
             someEmptyDomain = true;
         }

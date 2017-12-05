@@ -5,6 +5,15 @@
 
 void IntDomainsActions::initialize(int count)
 {
+	changedDomainsMask.initialize(count);
+	changedDomainsMask.resize(count);
+	for(int vi = 0; vi < changedDomainsMask.size; vi += 1)
+	{
+		changedDomainsMask[vi] = false;
+	}
+
+	changedDomains.initialize(count);;
+
     elementsToRemove.initialize(count);
 
     lowerbounds.initialize(count);
@@ -29,10 +38,16 @@ void IntDomainsActions::deinitialize()
 #ifdef GPU
     locks.deinitialize();
 #endif
+
+    changedDomainsMask.deinitialize();
+    changedDomains.deinitialize();
 }
 
 void IntDomainsActions::push()
 {
+	changedDomainsMask.resize_by_one();
+	changedDomainsMask.back() = false;
+
     elementsToRemove.resize_by_one();
     elementsToRemove.back().initialize();
 
@@ -45,12 +60,34 @@ void IntDomainsActions::push()
 #endif
 }
 
-cudaDevice void IntDomainsActions::clear(int index)
+cudaDevice void IntDomainsActions::clearActions()
 {
-    elementsToRemove[index].clear();
+	for(int vi = 0; vi < changedDomains.size; vi += 1)
+	{
+		int index = changedDomains[vi];
 
-    lowerbounds[index] = INT_MIN;
-    upperbounds[index] = INT_MAX;
+		elementsToRemove[index].clear();
+
+		lowerbounds[index] = INT_MIN;
+		upperbounds[index] = INT_MAX;
+	}
+}
+
+cudaDevice void IntDomainsActions::clearChangedDomains()
+{
+	for(int vi = 0; vi < changedDomains.size; vi += 1)
+	{
+		int index = changedDomains[vi];
+		changedDomainsMask[index] = false;
+	}
+
+	changedDomains.clear();
+}
+
+cudaDevice void IntDomainsActions::clearAll()
+{
+	clearActions();
+	clearChangedDomains();
 }
 
 cudaDevice void IntDomainsActions::removeElement(int index, int val)
@@ -64,6 +101,11 @@ cudaDevice void IntDomainsActions::removeElement(int index, int val)
 #ifdef GPU
         locks[index].unlock();
 #endif
+        if(not changedDomainsMask[index])
+        {
+        	changedDomainsMask[index] = true;
+        	changedDomains.push_back(index);
+        }
     }
 }
 
@@ -75,6 +117,11 @@ cudaDevice void IntDomainsActions::removeAnyGreaterThan(int index, int val)
 #else
     upperbounds[index] = std::min(val, upperbounds[index]);
 #endif
+    if(not changedDomainsMask[index])
+    {
+    	changedDomainsMask[index] = true;
+    	changedDomains.push_back(index);
+    }
 }
 
 cudaDevice void IntDomainsActions::removeAnyLesserThan(int index, int val)
@@ -85,4 +132,15 @@ cudaDevice void IntDomainsActions::removeAnyLesserThan(int index, int val)
 #else
     lowerbounds[index] = std::max(val, lowerbounds[index]);
 #endif
+    if(not changedDomainsMask[index])
+    {
+    	changedDomainsMask[index] = true;
+    	changedDomains.push_back(index);
+    }
+}
+
+cudaDevice void IntDomainsActions::keepOnly(int index, int val)
+{
+	removeAnyGreaterThan(index, val);
+	removeAnyLesserThan(index, val);
 }

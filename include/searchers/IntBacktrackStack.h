@@ -7,6 +7,7 @@
 
 struct IntBacktrackStack
 {
+	IntVariables* variables;
     IntDomainsRepresentations* representations;
 
     Vector<IntDomainsRepresentations> backupsStacks;
@@ -14,11 +15,11 @@ struct IntBacktrackStack
 
     Statistics* stats;
 
-    void initialize(IntDomainsRepresentations* representations, Statistics* stats);
+    void initialize(IntVariables* vairables, Statistics* stats);
     void deinitialize();
 
-    cudaDevice void saveState(int backtrackLevel);
-    cudaDevice void restoreState(int backtrackLevel);
+    cudaDevice void saveState(int backtrackLevel, Vector<int>* changedDomains);
+    cudaDevice void restoreState(int backtrackLevel, Vector<int>* changedDomains);
     cudaDevice void clearState(int backtrackLevel);
 
     cudaDevice bool isDomainChanged(int variable);
