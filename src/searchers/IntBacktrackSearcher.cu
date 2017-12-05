@@ -172,6 +172,7 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                     chosenValues.back() = chosenValue;
                     variables->domains.fixValue(chosenVariables.back(), chosenValues.back());
                     backtrackingState = ValueChosen;
+                    stats->nodesCount += 1;
                 }
                 else
                 {
