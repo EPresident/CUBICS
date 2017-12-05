@@ -1,6 +1,6 @@
 #pragma once
 
-#include <data_structures/Vector.h>
+#include <data_structures/MonotonicIntVector.h>
 #include <variables/IntVariables.h>
 #include <constraints/IntConstraints.h>
 
@@ -9,10 +9,9 @@ struct IntConstraintsPropagator
     IntVariables* variables;
     IntConstraints* constraints;
 
-    Vector<bool> constraintToPropagate;
+    MonotonicIntVector constraintToPropagate;
 
     bool someEmptyDomain;
-    bool someConstraintsToPropagate;
     bool allConstraintsSatisfied;
 
     void initialize(IntVariables* variables, IntConstraints* constraints);
@@ -20,8 +19,9 @@ struct IntConstraintsPropagator
 
     bool propagateConstraints();
     void setConstraintsToPropagate();
+    void setAllConstraintsToPropagate();
     void collectActions();
-    void clearDomainsEvents();
+    void resetDomainsEvents();
     void updateDomains();
     void clearConstraintsToPropagate();
     void checkEmptyDomains();

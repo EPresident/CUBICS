@@ -1,3 +1,5 @@
+#include <cassert>
+
 #include <propagators/IntConstraintsPropagator.h>
 #include <utils/Utils.h>
 
@@ -7,8 +9,6 @@ void IntConstraintsPropagator::initialize(IntVariables* variables, IntConstraint
     this->constraints = constraints;
 
     constraintToPropagate.initialize(constraints->count);
-    constraintToPropagate.resize(constraints->count);
-    clearConstraintsToPropagate();
 }
 
 void IntConstraintsPropagator::deinitialize()
@@ -19,89 +19,106 @@ void IntConstraintsPropagator::deinitialize()
 bool IntConstraintsPropagator::propagateConstraints()
 {
     someEmptyDomain = false;
-    someConstraintsToPropagate = false;
-    setConstraintsToPropagate();
 
-    while (someConstraintsToPropagate and (not someEmptyDomain))
+
+    int domainsWithActionsCount = variables->domains.actions.domainsWithActions.getSize();
+
+    //Instantiated variable
+    if(domainsWithActionsCount == 1)
     {
+        setConstraintsToPropagate();
+    }
+    else if(domainsWithActionsCount == 0) //Preprocessing
+    {
+        setAllConstraintsToPropagate();
+    }
+    else
+    {
+        LogUtils::error(__PRETTY_FUNCTION__, "Not expected domains state");
+    }
+
+    while (constraintToPropagate.getSize() > 0 and (not someEmptyDomain))
+    {
+        variables->domains.actions.domainsWithActions.clear();
         collectActions();
 
-        clearDomainsEvents();
-
+        resetDomainsEvents();
         updateDomains();
 
-        clearConstraintsToPropagate();
-
-        someEmptyDomain = false;
         checkEmptyDomains();
 
+        clearConstraintsToPropagate();
         if (not someEmptyDomain)
         {
-            someConstraintsToPropagate = false;
             setConstraintsToPropagate();
         }
     }
+
+    variables->domains.actions.domainsWithActions.clear();
+    resetDomainsEvents();
 
     return (not someEmptyDomain);
 }
 
 void IntConstraintsPropagator::setConstraintsToPropagate()
 {
-    for (int ci = 0; ci < constraints->count; ci += 1)
+    for (int vi = 0; vi < variables->domains.actions.domainsWithActions.getSize(); vi += 1)
     {
-        for (int vi = 0; vi < constraints->variables[ci].size; vi += 1)
-        {
-            int event = variables->domains.events[constraints->variables[ci][vi]];
+        int variable = variables->domains.actions.domainsWithActions[vi];
 
-            if (event == IntDomains::EventTypes::Changed)
+        if(variables->domains.events[variable] == IntDomains::EventTypes::Changed)
+        {
+
+            for(int ci = 0; ci < variables->constraints[variable].size; ci += 1)
             {
-                constraintToPropagate[ci] = true;
-                someConstraintsToPropagate = true;
+                int constraint = variables->constraints[variable][ci];
+                constraintToPropagate.add(constraint);
             }
         }
     }
 }
 
-void IntConstraintsPropagator::collectActions()
+void IntConstraintsPropagator::setAllConstraintsToPropagate()
 {
-    for (int ci = 0; ci < constraints->count; ci += 1)
+    for(int ci = 0; ci < constraints->count; ci += 1)
     {
-        if (constraintToPropagate[ci])
-        {
-            constraints->propagate(ci, variables);
-            constraintToPropagate[ci] = false;
-        }
+        constraintToPropagate.add(ci);
     }
 }
 
-void IntConstraintsPropagator::clearDomainsEvents()
+void IntConstraintsPropagator::collectActions()
 {
-    for (int vi = 0; vi < variables->count; vi += 1)
+    for (int ci = 0; ci < constraintToPropagate.getSize(); ci += 1)
     {
-        variables->domains.events[vi] = IntDomains::EventTypes::None;
+        constraints->propagate(constraintToPropagate[ci], variables);
     }
+}
+
+void IntConstraintsPropagator::resetDomainsEvents()
+{
+    AlgoUtils::fill(&variables->domains.events, static_cast<int>(IntDomains::EventTypes::None));
 }
 
 void IntConstraintsPropagator::updateDomains()
 {
-    for (int vi = 0; vi < variables->count; vi += 1)
+    for (int i = 0; i < variables->domains.actions.domainsWithActions.getSize(); i += 1)
     {
-        variables->domains.updateDomain(vi);
+        int vi = variables->domains.actions.domainsWithActions[i];
+        variables->domains.update(vi);
     }
 }
 
 void IntConstraintsPropagator::clearConstraintsToPropagate()
 {
-    for (int ci = 0; ci < constraints->count; ci += 1)
-    {
-        constraintToPropagate[ci] = false;
-    }
+    constraintToPropagate.clear();
 }
 
 void IntConstraintsPropagator::checkEmptyDomains()
 {
-    for (int vi = 0; vi < variables->count; vi += 1)
+    for (int i = 0; i < variables->domains.actions.domainsWithActions.getSize(); i += 1)
     {
+        int vi = variables->domains.actions.domainsWithActions[i];
+
         if (variables->domains.isEmpty(vi))
         {
             someEmptyDomain = true;
