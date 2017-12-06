@@ -6,15 +6,26 @@ void IntBacktrackStack::initialize(IntDomainsRepresentations* representations)
 
     backupsStacks.initialize(representations->bitvectors.size);
     backupsStacks.resize(representations->bitvectors.size);
-
-    levelsStacks.initialize(representations->bitvectors.size);
-    levelsStacks.resize(representations->bitvectors.size);
-
     for (int vi = 0; vi < backupsStacks.size; vi += 1)
     {
         backupsStacks[vi].initialize(VECTOR_INITIAL_CAPACITY);
+        int min = representations->minimums[vi];
+        int max = representations->maximums[vi];
+        int offset = representations->offsets[vi];
+        int version = representations->versions[vi];
+        Vector<unsigned int>* bitvector = &representations->bitvectors[vi];
+        backupsStacks[vi].push(min, max, offset, version, bitvector);
+    }
 
+    levelsStacks.initialize(representations->bitvectors.size);
+    levelsStacks.resize(representations->bitvectors.size);
+    for (int vi = 0; vi < backupsStacks.size; vi += 1)
+    {
         levelsStacks[vi].initialize();
+    }
+    for (int vi = 0; vi < backupsStacks.size; vi += 1)
+    {
+        levelsStacks[0].push_back(vi);
     }
 }
 
@@ -29,53 +40,52 @@ void IntBacktrackStack::deinitialize()
     levelsStacks.deinitialize();
 }
 
-void IntBacktrackStack::saveState(int backtrackLevel)
+void IntBacktrackStack::saveState(int backtrackLevel, MonotonicIntVector* changedDomains)
 {
-    for (int vi = 0; vi < backupsStacks.size; vi += 1)
+    for (int i = 0; i < changedDomains->getSize(); i += 1)
     {
-        if (backtrackLevel == 0 || isDomainChanged(vi))
-        {
-            int min = representations->minimums[vi];
-            int max = representations->maximums[vi];
-            int offset = representations->offsets[vi];
-            int version = representations->versions[vi];
-            Vector<unsigned int>* bitvector = &representations->bitvectors[vi];
-            backupsStacks[vi].push(min, max, offset, version, bitvector);
+        int vi = changedDomains->at(i);
 
-            levelsStacks[vi].push_back(backtrackLevel);
-        }
+        int min = representations->minimums[vi];
+        int max = representations->maximums[vi];
+        int offset = representations->offsets[vi];
+        int version = representations->versions[vi];
+        Vector<unsigned int>* bitvector = &representations->bitvectors[vi];
+        backupsStacks[vi].push(min, max, offset, version, bitvector);
+
+        levelsStacks[backtrackLevel].push_back(vi);
     }
 }
 
-void IntBacktrackStack::restoreState(int backtrackLevel)
+void IntBacktrackStack::resetState(MonotonicIntVector* changedDomains)
 {
-    for (int vi = 0; vi < backupsStacks.size; vi += 1)
+    for (int i = 0; i < changedDomains->getSize(); i += 1)
     {
-        if (isDomainChanged(vi))
-        {
-            representations->minimums[vi] = backupsStacks[vi].minimums.back();
-            representations->maximums[vi] = backupsStacks[vi].maximums.back();
-            representations->offsets[vi] = backupsStacks[vi].offsets.back();
-            representations->versions[vi] = backupsStacks[vi].versions.back();
-            representations->bitvectors[vi].copy(&backupsStacks[vi].bitvectors.back());
+        int vi = changedDomains->at(i);
 
-        }
+        representations->minimums[vi] = backupsStacks[vi].minimums.back();
+        representations->maximums[vi] = backupsStacks[vi].maximums.back();
+        representations->offsets[vi] = backupsStacks[vi].offsets.back();
+        representations->versions[vi] = backupsStacks[vi].versions.back();
+        representations->bitvectors[vi].copy(&backupsStacks[vi].bitvectors.back());
     }
 }
 
-void IntBacktrackStack::clearState(int backtrackLevel)
+void IntBacktrackStack::restorePreviousState(int backtrackLevel)
 {
-    for (int vi = 0; vi < backupsStacks.size; vi += 1)
+    for (int i = 0; i < levelsStacks[backtrackLevel].size; i += 1)
     {
-        if (levelsStacks[vi].back() == backtrackLevel)
-        {
-            backupsStacks[vi].pop();
-            levelsStacks[vi].pop_back();
-        }
-    }
-}
+        int vi = levelsStacks[backtrackLevel][i];
 
-bool IntBacktrackStack::isDomainChanged(int variable)
-{
-    return backupsStacks[variable].versions.back() != representations->versions[variable];
+        backupsStacks[vi].pop();
+
+        representations->minimums[vi] = backupsStacks[vi].minimums.back();
+        representations->maximums[vi] = backupsStacks[vi].maximums.back();
+        representations->offsets[vi] = backupsStacks[vi].offsets.back();
+        representations->versions[vi] = backupsStacks[vi].versions.back();
+        representations->bitvectors[vi].copy(&backupsStacks[vi].bitvectors.back());
+
+    }
+
+    levelsStacks[backtrackLevel].clear();
 }

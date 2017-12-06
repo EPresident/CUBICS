@@ -14,8 +14,9 @@ struct IntBacktrackStack
     void initialize(IntDomainsRepresentations* representations);
     void deinitialize();
 
-    void saveState(int backtrackLevel);
-    void restoreState(int backtrackLevel);
+    void saveState(int backtrackLevel, MonotonicIntVector* changedDomains);
+    void resetState(MonotonicIntVector* changedDomains);
+    void restorePreviousState(int backtrackLevel);
     void clearState(int backtrackLevel);
 
     bool isDomainChanged(int variable);
