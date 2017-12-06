@@ -9,6 +9,8 @@ void IntDomainsActions::initialize(int count)
 
     lowerbounds.initialize(count);
     upperbounds.initialize(count);
+
+    domainsWithActions.initialize(count);
 }
 
 void IntDomainsActions::deinitialize()
@@ -21,6 +23,8 @@ void IntDomainsActions::deinitialize()
 
     lowerbounds.deinitialize();
     upperbounds.deinitialize();
+
+    domainsWithActions.deinitialize();
 }
 
 void IntDomainsActions::push()
@@ -30,6 +34,8 @@ void IntDomainsActions::push()
 
     lowerbounds.push_back(INT_MIN);
     upperbounds.push_back(INT_MAX);
+
+    domainsWithActions.reinitialize(elementsToRemove.size);
 }
 
 void IntDomainsActions::clear(int index)
@@ -46,14 +52,18 @@ void IntDomainsActions::removeElement(int index, int val)
     {
         elementsToRemove[index].push_back(val);
     }
+
+    domainsWithActions.add(index);
 }
 
 void IntDomainsActions::removeAnyGreaterThan(int index, int val)
 {
     upperbounds[index] = std::min(val, upperbounds[index]);
+    domainsWithActions.add(index);
 }
 
 void IntDomainsActions::removeAnyLesserThan(int index, int val)
 {
     lowerbounds[index] = std::max(val, lowerbounds[index]);
+    domainsWithActions.add(index);
 }
