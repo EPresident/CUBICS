@@ -3,39 +3,12 @@
 
 #include <utils/GpuUtils.h>
 
+#define THREAD_ID (blockDim.x * blockIdx.x) + threadIdx.x
+
 namespace KernelUtils
 {
-    cudaHostDevice inline int getBlockCount(int taskCount, int blockSize, bool divergence = false)
-    {
-        if (divergence)
-        {
-            return ceil(static_cast<float>(taskCount * WARP_SIZE) / blockSize);
-        }
-        else
-        {
-            return ceil(static_cast<float>(taskCount) / blockSize);
-        }
-    }
+    cudaDevice int getBlockCount(int taskCount, int blockSize = DEFAULT_BLOCK_SIZE, bool divergence = false);
 
-    cudaDevice inline int getTaskIndex(bool divergence = false)
-    {
-        int threadIndex = (blockDim.x * blockIdx.x) + threadIdx.x;
-
-        if (divergence)
-        {
-            if (threadIndex % WARP_SIZE != 0)
-            {
-                return -1;
-            }
-            else
-            {
-                return threadIndex / WARP_SIZE;
-            }
-        }
-        else
-        {
-            return threadIndex;
-        }
-    }
+    cudaDevice int getTaskIndex(int threadId, bool divergence = false);
 }
 #endif

@@ -24,7 +24,7 @@ void IntDomainsRepresentations::deinitialize()
     bitvectors.initialize();
 }
 
-void IntDomainsRepresentations::push(int min, int max)
+cudaHostDevice void IntDomainsRepresentations::push(int min, int max)
 {
     minimums.push_back(min);
     maximums.push_back(max);
@@ -43,7 +43,7 @@ void IntDomainsRepresentations::push(int min, int max)
     bitvectors.back()[maxChunkIndex] &= mask;
 }
 
-cudaDevice void IntDomainsRepresentations::push(int min, int max, int offset, unsigned int version, Vector<unsigned int>* bitvector)
+cudaHostDevice void IntDomainsRepresentations::push(int min, int max, int offset, unsigned int version, Vector<unsigned int>* bitvector)
 {
     minimums.push_back(min);
     maximums.push_back(max);

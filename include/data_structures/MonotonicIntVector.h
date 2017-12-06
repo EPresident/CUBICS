@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include <data_structures/Vector.h>
+#include <data_structures/Lock.h>
 #include <utils/Utils.h>
 
 struct MonotonicIntVector
@@ -15,35 +16,39 @@ struct MonotonicIntVector
 
     void deinitialize();
 
-    inline bool contain(int value)
+#ifdef GPU
+    Lock lock;
+#endif
+
+    cudaHostDevice inline bool contain(int value)
     {
         assert(value < booleanMask.size);
 
         return booleanMask[value];
     }
 
-    inline int operator[](int index)
+    cudaHostDevice inline int operator[](int index)
     {
         return vector[index];
     }
 
-    inline int at(int index)
+    cudaHostDevice inline int at(int index)
     {
         return vector[index];
     }
 
-    int getSize()
+    cudaHostDevice int getSize()
     {
         return vector.size;
     }
 
-    void add(int value);
+    cudaHostDevice void add(int value);
 
-    void add(MonotonicIntVector* other);
+    cudaHostDevice void add(MonotonicIntVector* other);
 
-    void clear();
+    cudaHostDevice void clear();
 
-    void copy(MonotonicIntVector* other);
+    cudaHostDevice void copy(MonotonicIntVector* other);
 
-    void reinitialize(int maxSize);
+    cudaHostDevice void reinitialize(int maxSize);
 };

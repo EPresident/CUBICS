@@ -2,19 +2,19 @@
 #include <wrappers/Wrappers.h>
 
 //Integer backtracking stack
-cudaGlobal void Wrappers::saveState(IntBacktrackStack* backtrackStack, int backtrackingLevel)
+cudaGlobal void Wrappers::saveState(IntBacktrackStack* backtrackStack, int backtrackingLevel, MonotonicIntVector* changedDomains)
 {
-    backtrackStack->saveState(backtrackingLevel);
+    backtrackStack->saveState(backtrackingLevel, changedDomains);
 }
 
-cudaGlobal void Wrappers::restoreState(IntBacktrackStack* backtrackStack, int backtrackingLevel)
+cudaGlobal void Wrappers::resetState(IntBacktrackStack* backtrackStack, MonotonicIntVector* changedDomains)
 {
-    backtrackStack->restoreState(backtrackingLevel);
+    backtrackStack->resetState(changedDomains);
 }
 
-cudaGlobal void Wrappers::clearState(IntBacktrackStack* backtrackStack, int backtrackingLevel)
+cudaGlobal void Wrappers::restorePreviousState(IntBacktrackStack* backtrackStack, int backtrackingLevel)
 {
-    backtrackStack->clearState(backtrackingLevel);
+    backtrackStack->restorePreviousState(backtrackingLevel);
 }
 
 //Integer backtracking searcher
@@ -37,11 +37,6 @@ cudaGlobal void Wrappers::setConstraintsToPropagate(IntConstraintsPropagator* pr
 cudaGlobal void Wrappers::collectActions(IntConstraintsPropagator* propagator)
 {
     propagator->collectActions();
-}
-
-cudaGlobal void Wrappers::clearDomainsEvents(IntConstraintsPropagator* propagator)
-{
-    propagator->clearDomainsEvents();
 }
 
 cudaGlobal void Wrappers::updateDomains(IntConstraintsPropagator* propagator)

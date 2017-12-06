@@ -1,7 +1,10 @@
 #include <algorithm>
+#include <cstdio>
 
 #include <searchers/IntBacktrackStack.h>
 #include <utils/KernelUtils.h>
+
+using namespace std;
 
 void IntBacktrackStack::initialize(IntDomainsRepresentations* representations, Statistics* stats)
 {
@@ -50,7 +53,7 @@ void IntBacktrackStack::deinitialize()
 cudaDevice void IntBacktrackStack::saveState(int backtrackLevel, MonotonicIntVector* changedDomains)
 {
 #ifdef GPU
-    int i = KernelUtils::getTaskIndex();
+    int i = KernelUtils::getTaskIndex(THREAD_ID);
     if (i >= 0 and i < changedDomains->getSize())
 #else
     for (int i = 0; i < changedDomains->getSize(); i += 1)
@@ -64,22 +67,26 @@ cudaDevice void IntBacktrackStack::saveState(int backtrackLevel, MonotonicIntVec
         int version = representations->versions[vi];
         Vector<unsigned int>* bitvector = &representations->bitvectors[vi];
         backupsStacks[vi].push(min, max, offset, version, bitvector);
-
-        levelsStacks[backtrackLevel].push_back(vi);
-
-
     }
 
-    if(changedDomains->getSize() > 0)
+#ifdef GPU
+    if(i == 0)
+#endif
     {
-        stats->maxStackSize = std::max(stats->maxStackSize, backtrackLevel);
+        for (int i = 0; i < changedDomains->getSize(); i += 1)
+        {
+            int vi = changedDomains->at(i);
+            levelsStacks[backtrackLevel].push_back(vi);
+        }
+
+        stats->maxStackSize = max(stats->maxStackSize, backtrackLevel);
     }
 }
 
 cudaDevice void IntBacktrackStack::resetState(MonotonicIntVector* changedDomains)
 {
 #ifdef GPU
-    int i = KernelUtils::getTaskIndex();
+    int i = KernelUtils::getTaskIndex(THREAD_ID);
     if (i >= 0 and i < changedDomains->getSize())
 #else
     for (int i = 0; i < changedDomains->getSize(); i += 1)
@@ -98,7 +105,7 @@ cudaDevice void IntBacktrackStack::resetState(MonotonicIntVector* changedDomains
 cudaDevice void IntBacktrackStack::restorePreviousState(int backtrackLevel)
 {
 #ifdef GPU
-    int i = KernelUtils::getTaskIndex();
+    int i = KernelUtils::getTaskIndex(THREAD_ID);
     if (i >= 0 and i < levelsStacks[backtrackLevel].size)
 #else
     for (int i = 0; i < levelsStacks[backtrackLevel].size; i += 1)
@@ -106,6 +113,7 @@ cudaDevice void IntBacktrackStack::restorePreviousState(int backtrackLevel)
     {
         int vi = levelsStacks[backtrackLevel][i];
 
+        //Workaround! After this call must be performed levelsStacks[backtrackLevel].clear()!
         backupsStacks[vi].pop();
 
         representations->minimums[vi] = backupsStacks[vi].minimums.back();
@@ -113,8 +121,5 @@ cudaDevice void IntBacktrackStack::restorePreviousState(int backtrackLevel)
         representations->offsets[vi] = backupsStacks[vi].offsets.back();
         representations->versions[vi] = backupsStacks[vi].versions.back();
         representations->bitvectors[vi].copy(&backupsStacks[vi].bitvectors.back());
-
     }
-
-    levelsStacks[backtrackLevel].clear();
 }

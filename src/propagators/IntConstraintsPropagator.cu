@@ -11,12 +11,6 @@ void IntConstraintsPropagator::initialize(IntVariables* variables, IntConstraint
 
     constraintToPropagate.initialize(constraints->count);
 
-#ifdef GPU
-    constraintsBlockCountDivergence = KernelUtils::getBlockCount(constraints->count, DEFAULT_BLOCK_SIZE, true);
-    constraintsBlockCount = KernelUtils::getBlockCount(constraints->count, DEFAULT_BLOCK_SIZE);
-    variablesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
-#endif
-
     this->stats = stats;
 }
 
@@ -34,12 +28,7 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints()
     //Instantiated variable
     if(domainsWithActionsCount == 1)
     {
-#ifdef GPU
-    Wrappers::setConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
-    cudaDeviceSynchronize();
-#else
-    setConstraintsToPropagate();
-#endif
+        setConstraintsToPropagate();
     }
     else if(domainsWithActionsCount == 0) //Preprocessing
     {
@@ -53,28 +42,27 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints()
     while (constraintToPropagate.getSize() > 0 and (not someEmptyDomain))
     {
         variables->domains.actions.domainsWithActions.clear();
-#ifdef GPU
-        Wrappers::collectActions<<<constraintsBlockCountDivergence, DEFAULT_BLOCK_SIZE>>>(this);
+#ifdef AGPU
+        int blockCount = KernelUtils::getBlockCount(constraintToPropagate.getSize(), DEFAULT_BLOCK_SIZE, true );
+        Wrappers::collectActions<<<1, 1>>>(this);
         cudaDeviceSynchronize();
 #else
         collectActions();
 #endif
 
-#ifdef GPU
-        Wrappers::resetDomainsEvents<<<1,1>>>(this);
-        cudaDeviceSynchronize();
-#else
         resetDomainsEvents();
-#endif
 
-#ifdef GPU
-        Wrappers::updateDomains<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
+#ifdef AGPU
+        blockCount = KernelUtils::getBlockCount(variables->domains.actions.domainsWithActions.getSize());
+        Wrappers::updateDomains<<<1, 1>>>(this);
         cudaDeviceSynchronize();
 #else
         updateDomains();
 #endif
+
 #ifdef GPU
-        Wrappers::checkEmptyDomains<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
+        int blockCount = KernelUtils::getBlockCount(variables->domains.actions.domainsWithActions.getSize());
+        Wrappers::checkEmptyDomains<<<blockCount, DEFAULT_BLOCK_SIZE>>>(this);
         cudaDeviceSynchronize();
 #else
         checkEmptyDomains();
@@ -83,8 +71,8 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints()
         clearConstraintsToPropagate();
         if (not someEmptyDomain)
         {
-#ifdef GPU
-            Wrappers::setConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
+#ifdef AGPU
+            Wrappers::setConstraintsToPropagate<<<blockCount, DEFAULT_BLOCK_SIZE>>>(this);
             cudaDeviceSynchronize();
 #else
             setConstraintsToPropagate();
@@ -100,7 +88,7 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints()
 
 cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
 {
-#ifdef GPU
+#ifdef AGPU
     int vi = KernelUtils::getTaskIndex();
     if (vi >= 0 and vi < variables->domains.actions.domainsWithActions.getSize())
 #else
@@ -123,7 +111,7 @@ cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
 
 cudaDevice void IntConstraintsPropagator::setAllConstraintsToPropagate()
 {
-#ifdef GPU
+#ifdef AGPU
     int ci = KernelUtils::getTaskIndex(true);
     if (ci >= 0 and ci < constraints->count)
 #else
@@ -137,8 +125,8 @@ cudaDevice void IntConstraintsPropagator::setAllConstraintsToPropagate()
 
 cudaDevice void IntConstraintsPropagator::collectActions()
 {
-#ifdef GPU
-    int ci = KernelUtils::getTaskIndex();
+#ifdef AGPU
+    int ci = KernelUtils::getTaskIndex(true);
     if (ci >= 0 and ci < constraintToPropagate.getSize())
 #else
     for (int ci = 0; ci < constraintToPropagate.getSize(); ci += 1)
@@ -156,9 +144,9 @@ cudaDevice void IntConstraintsPropagator::resetDomainsEvents()
 
 cudaDevice void IntConstraintsPropagator::updateDomains()
 {
-#ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
-    if (vi >= 0 and vi < variables->domains.actions.domainsWithActions.getSize())
+#ifdef AGPU
+    int i = KernelUtils::getTaskIndex();
+    if (i >= 0 and i < variables->domains.actions.domainsWithActions.getSize())
 #else
     for (int i = 0; i < variables->domains.actions.domainsWithActions.getSize(); i += 1)
 #endif
@@ -168,7 +156,7 @@ cudaDevice void IntConstraintsPropagator::updateDomains()
     }
 }
 
-cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
+cudaDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
 {
     constraintToPropagate.clear();
 }
@@ -176,7 +164,7 @@ cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
 cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
 {
 #ifdef GPU
-    int i = KernelUtils::getTaskIndex();
+    int i = KernelUtils::getTaskIndex(THREAD_ID);
     if (i >= 0 and i < variables->domains.actions.domainsWithActions.getSize())
 #else
     for (int i = 0; i < variables->domains.actions.domainsWithActions.getSize(); i += 1)
@@ -194,8 +182,9 @@ cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
 cudaDevice bool IntConstraintsPropagator::verifyConstraints()
 {
     allConstraintsSatisfied = true;
-#ifdef GPU
-    Wrappers::checkSatisfiedConstraints<<<constraintsBlockCountDivergence, DEFAULT_BLOCK_SIZE>>>(this);
+#ifdef AGPU
+    int blockCount = KernelUtils::getBlockCount(constraints->count, true);
+    Wrappers::checkSatisfiedConstraints<<<blockCount, DEFAULT_BLOCK_SIZE>>>(this);
     cudaDeviceSynchronize();
 #else
     checkSatisfiedConstraints();
@@ -206,7 +195,7 @@ cudaDevice bool IntConstraintsPropagator::verifyConstraints()
 
 cudaDevice void IntConstraintsPropagator::checkSatisfiedConstraints()
 {
-#ifdef GPU
+#ifdef AGPU
     int ci = KernelUtils::getTaskIndex(true);
     if (ci >= 0 and ci < constraints->count)
 #else

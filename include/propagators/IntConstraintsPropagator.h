@@ -16,12 +16,6 @@ struct IntConstraintsPropagator
     bool someEmptyDomain;
     bool allConstraintsSatisfied;
 
-#ifdef GPU
-    int constraintsBlockCountDivergence;
-    int constraintsBlockCount;
-    int variablesBlockCount;
-#endif
-
     Statistics* stats;
 
     void initialize(IntVariables* variables, IntConstraints* constraints, Statistics* stats);

@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include <utils/GpuUtils.h>
+#include <utils/LogUtils.h>
 
 namespace MemUtils
 {

@@ -80,7 +80,7 @@ struct Vector
         }
     }
 
-    void resize(int count)
+    cudaHostDevice void resize(int count)
     {
         reserve(count);
 

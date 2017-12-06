@@ -20,10 +20,6 @@ void IntBacktrackSearcher::initialize(FlatZinc::FlatZincModel* fzModel, Statisti
     backtrackingLevel = 0;
     backtrackingState = VariableNotChosen;
 
-#ifdef GPU
-    varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
-#endif
-
     switch (fzModel->method())
     {
         case FlatZinc::FlatZincModel::Meth::SAT:
@@ -81,12 +77,17 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
         {
             case VariableNotChosen:
             {
+                int changedDomainsCount = variables->domains.changes.getSize();
+                if (changedDomainsCount > 0)
+                {
 #ifdef GPU
-                Wrappers::saveState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
-                cudaDeviceSynchronize();
+                    int blockCount = KernelUtils::getBlockCount(variables->domains.changes.getSize());
+                    Wrappers::saveState<<<blockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel, &variables->domains.changes);
+                    cudaDeviceSynchronize();
 #else
-                stack.saveState(backtrackingLevel, &variables->domains.changes);
+                    stack.saveState(backtrackingLevel, &variables->domains.changes);
 #endif
+                }
                 variables->domains.changes.clear();
 
                 if (variablesChooser.getVariable(backtrackingLevel, &chosenVariable))
@@ -163,11 +164,8 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
             case ValueChecked:
             {
 #ifdef GPU
-<<<<<<< HEAD
-                Wrappers::restoreState<<<1, 1>>>(&stack, &variables->domains.changes);
-=======
-                Wrappers::restoreState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
->>>>>>> 0d1cbffb... [Stack] Parallelize integer backtrack stack
+                int blockCount = KernelUtils::getBlockCount(variables->domains.changes.getSize());
+                Wrappers::resetState<<<blockCount, DEFAULT_BLOCK_SIZE>>>(&stack, &variables->domains.changes);
                 cudaDeviceSynchronize();
 #else
                 stack.resetState(&variables->domains.changes);
@@ -187,11 +185,13 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
                     if(backtrackingLevel > 0)
                     {
 #ifdef GPU
-                        Wrappers::clearState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
+                        int blockCount = KernelUtils::getBlockCount(stack.levelsStacks[backtrackingLevel].size);
+                        Wrappers::restorePreviousState<<<blockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
                         cudaDeviceSynchronize();
 #else
                         stack.restorePreviousState(backtrackingLevel);
 #endif
+                        stack.levelsStacks[backtrackingLevel].clear();
                     }
 
 

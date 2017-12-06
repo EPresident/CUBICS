@@ -38,11 +38,6 @@ struct IntBacktrackSearcher
 
     IntConstraintsPropagator propagator;
 
-
-#ifdef GPU
-    int varibalesBlockCount;
-#endif
-
     enum SearchType
     {
         Satisfiability,

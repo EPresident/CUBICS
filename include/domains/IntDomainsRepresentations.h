@@ -14,8 +14,8 @@ struct IntDomainsRepresentations
     void initialize(int count);
     void deinitialize();
 
-    void push(int min, int max);
-    cudaDevice void push(int min, int max, int offset, unsigned int version, Vector<unsigned int>* bitvector);
+    cudaHostDevice void push(int min, int max);
+    cudaHostDevice void push(int min, int max, int offset, unsigned int version, Vector<unsigned int>* bitvector);
     cudaDevice void pop();
 
     cudaHostDevice inline int getChunkIndex(int index, int val)

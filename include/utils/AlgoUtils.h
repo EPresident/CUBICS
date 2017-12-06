@@ -5,7 +5,7 @@
 namespace AlgoUtils
 {
     template<typename T>
-    void fill(Vector<T>* vector, T value)
+    cudaHostDevice void fill(Vector<T>* vector, T value)
     {
         for (int i = 0; i < vector->size; i += 1)
         {

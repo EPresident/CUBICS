@@ -9,6 +9,10 @@ void MonotonicIntVector::initialize(int maxSize)
     AlgoUtils::fill(&booleanMask, false);
 
     vector.initialize(maxSize);
+
+#ifdef GPU
+    lock.initialize();
+#endif
 }
 
 void  MonotonicIntVector::deinitialize()
@@ -17,16 +21,26 @@ void  MonotonicIntVector::deinitialize()
     vector.deinitialize();
 }
 
-void MonotonicIntVector::add(int value)
+cudaHostDevice void MonotonicIntVector::add(int value)
 {
+
+#if defined(GPU) && defined(__CUDA_ARCH__)
+    lock.lock();
+#endif
+
     if(not contain(value))
     {
         booleanMask[value] = true;
         vector.push_back(value);
     }
+#if defined(GPU) && defined(__CUDA_ARCH__)
+    lock.unlock();
+#endif
+
+
 }
 
-void MonotonicIntVector::add(MonotonicIntVector* other)
+cudaHostDevice void MonotonicIntVector::add(MonotonicIntVector* other)
 {
     assert(this->maxSize == other->maxSize);
 
@@ -36,7 +50,7 @@ void MonotonicIntVector::add(MonotonicIntVector* other)
     }
 }
 
-void MonotonicIntVector::clear()
+cudaHostDevice void MonotonicIntVector::clear()
 {
     for(int i = 0; i < vector.size; i += 1)
     {
@@ -46,7 +60,7 @@ void MonotonicIntVector::clear()
     vector.clear();
 }
 
-void MonotonicIntVector::copy(MonotonicIntVector* other)
+cudaHostDevice void MonotonicIntVector::copy(MonotonicIntVector* other)
 {
     assert(this->maxSize == other->maxSize);
 
@@ -54,7 +68,7 @@ void MonotonicIntVector::copy(MonotonicIntVector* other)
     this->vector.copy(&other->vector);
 }
 
-void MonotonicIntVector::reinitialize(int maxSize)
+cudaHostDevice void MonotonicIntVector::reinitialize(int maxSize)
 {
     this->maxSize = maxSize;
     booleanMask.resize(maxSize);
