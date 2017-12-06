@@ -12,19 +12,27 @@ struct IntBacktrackSearcher
 {
     enum States
     {
-        VariableNotChosen,
-        VariableChosen,
-        ValueChosen,
-        SuccessfulPropagation,
-        ValueChecked
+        VariableNotChosen, /// Initial state
+        VariableChosen, /// A variable has been chosen
+        ValueChosen, /// A value for the variable has been chosen
+        SuccessfulPropagation, /// Propagation successful after fixing a variable
+        ValueChecked /// unsat after propagating the chosen value, find another
     };
 
     int backtrackingState;
     int backtrackingLevel;
 
+    /// Current variable to be assigned.
     int chosenVariable;
+    /// Value to assign to the chosen variable.
     int chosenValue;
+    
+    /// Indicates the variable assigned on each backtrack level.
     Vector<int> chosenVariables;
+    /** 
+    * Indicates the value of the assignment on each backtrack level;
+    * chosenValues[i] is the value assigned to chosenVariables[i].
+    */
     Vector<int> chosenValues;
 
     IntVariables* variables;
@@ -39,6 +47,7 @@ struct IntBacktrackSearcher
 
 
 #ifdef GPU
+    /// CUDA blocks needed to handle all the variables
     int varibalesBlockCount;
 #endif
 
@@ -50,14 +59,25 @@ struct IntBacktrackSearcher
     };
 
     int searchType;
+    /// The variable to be optimized
     int optVariable;
+    /// Constraint to be optimized (cost function)
     int optConstraint;
 
     void initialize(FlatZinc::FlatZincModel* fzModel);
     void deinitialize();
 
+    /**
+    * Find the next solution, backtracking when needed.
+    * \return true if a solution is found, false otherwise.
+    */
     cudaDevice bool getNextSolution();
 
+    /**
+    * Require that the optimization variable ("optVariable") take a value
+    * greater/smaller than its minumum/maximum value (for a 
+    * maximization/minimization problem).
+    */
     cudaDevice void shrinkOptimizationBound();
 };
 
