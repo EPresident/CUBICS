@@ -1,4 +1,5 @@
 #include <choosers/IntInOrderValuesChooser.h>
+#include <utils/Utils.h>
 
 cudaDevice bool IntInOrderValuesChooser::getFirstValue(IntValuesChooser* valuesChooser, int variable, int* firstValue)
 {

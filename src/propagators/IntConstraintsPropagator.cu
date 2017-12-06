@@ -73,15 +73,6 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints()
 #else
         updateDomains();
 #endif
-
-#ifdef GPU
-        Wrappers::clearConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
-        cudaDeviceSynchronize();
-#else
-        clearConstraintsToPropagate();
-#endif
-
-        someEmptyDomain = false;
 #ifdef GPU
         Wrappers::checkEmptyDomains<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
         cudaDeviceSynchronize();

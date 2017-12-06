@@ -85,6 +85,7 @@ cudaDevice void IntDomainsActions::removeAnyGreaterThan(int index, int val)
     atomicMin(&upperbounds[index], val);
 #else
     upperbounds[index] = std::min(val, upperbounds[index]);
+#endif
 
     domainsWithActions.add(index);
 }
@@ -96,6 +97,7 @@ cudaDevice void IntDomainsActions::removeAnyLesserThan(int index, int val)
     atomicMax(&lowerbounds[index], val);
 #else
     lowerbounds[index] = std::max(val, lowerbounds[index]);
+#endif
 
     domainsWithActions.add(index);
 }

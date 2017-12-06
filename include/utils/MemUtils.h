@@ -4,6 +4,8 @@
 #include <cstring>
 #include <cassert>
 
+#include <utils/GpuUtils.h>
+
 namespace MemUtils
 {
     template<typename T>
