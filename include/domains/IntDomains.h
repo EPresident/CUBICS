@@ -2,6 +2,7 @@
 
 #include <domains/IntDomainsRepresentations.h>
 #include <domains/IntDomainsActions.h>
+#include <data_structures/MonotonicIntVector.h>
 
 struct IntDomains
 {
@@ -15,6 +16,7 @@ struct IntDomains
 
     IntDomainsRepresentations representations;
     IntDomainsActions actions;
+    MonotonicIntVector changes;
 
     void initialize(int count);
     void deinitialize();

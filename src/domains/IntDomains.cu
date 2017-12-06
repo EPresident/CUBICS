@@ -6,6 +6,8 @@ void IntDomains::initialize(int count)
 
     representations.initialize(count);
     actions.initialize(count);
+
+    changes.initialize(count);
 }
 
 void IntDomains::deinitialize()
@@ -14,11 +16,15 @@ void IntDomains::deinitialize()
 
     representations.deinitialize();
     actions.deinitialize();
+
+    changes.deinitialize();
 }
 
 void IntDomains::push(int min, int max)
 {
     events.push_back(EventTypes::Changed);
+
+    changes.reinitialize(events.size);
 
     representations.push(min, max);
     actions.push();
@@ -28,8 +34,10 @@ void IntDomains::fixValue(int index, int value)
 {
     assert(representations.contain(index, value));
 
-    representations.keepOnly(index, value);
-    events[index] = EventTypes::Changed;
+    actions.removeAnyGreaterThan(index, value);
+    actions.removeAnyLesserThan(index, value);
+
+    update(index);
 }
 
 void IntDomains::update(int index)
@@ -49,10 +57,7 @@ void IntDomains::update(int index)
 
     if (previousVersion != representations.versions[index])
     {
+        changes.add(index);
         events[index] = EventTypes::Changed;
-    }
-    else
-    {
-        events[index] = EventTypes::None;
     }
 }
