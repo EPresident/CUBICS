@@ -12,13 +12,16 @@ using namespace std;
 
 int main(int argc, char * argv[])
 {
+    // Parse command line arguments
     Options opts;
     opts.initialize();
     opts.parseOptions(argc, argv);
 
+    // Initialize FlatZinc model and printer
     FlatZinc::Printer printer;
     FlatZinc::FlatZincModel* fzModel = FlatZinc::parse(opts.inputFile, printer);
 
+    // Initialize backtrack searcher
     IntBacktrackSearcher* backtrackSearcher;
     MemUtils::malloc(&backtrackSearcher);
     backtrackSearcher->initialize(fzModel);
@@ -27,6 +30,7 @@ int main(int argc, char * argv[])
     MemUtils::malloc(&satisfiableModel);
     *satisfiableModel = true;
 
+    // Make sure the model is satisfiable, by propagating the constaints. (GPU/CPU)
 #ifdef GPU
     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSetLimit(cudaLimitMallocHeapSize, HEAP_SIZE));
 
@@ -35,6 +39,7 @@ int main(int argc, char * argv[])
 #else
     *satisfiableModel = backtrackSearcher->propagator.propagateConstraints();
 #endif
+
     if (*satisfiableModel)
     {
         bool* solutionFound;
@@ -43,13 +48,21 @@ int main(int argc, char * argv[])
 
         unsigned int solutionCount = 0;
 
+        // Check if only the best solution is required
         bool onlyBestSolution = false;
         onlyBestSolution = onlyBestSolution or backtrackSearcher->searchType == IntBacktrackSearcher::SearchType::Maximization;
         onlyBestSolution = onlyBestSolution or backtrackSearcher->searchType == IntBacktrackSearcher::SearchType::Minimization;
         onlyBestSolution = onlyBestSolution and opts.solutionsCount == 1;
         std::stringstream bestSolution;
+        
+        /*
+        * Find solutions until the search criteria are met.
+        * That means finding 1/n/all solutions, depending on the user
+        * provided arguments.
+        */
         while (*solutionFound and (solutionCount < opts.solutionsCount or onlyBestSolution))
         {
+            // Get next solution (GPU/CPU)
 #ifdef GPU
             Wrappers::getNextSolution<<<1, 1>>>(backtrackSearcher, solutionFound);
             LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
@@ -58,7 +71,7 @@ int main(int argc, char * argv[])
 #endif
             if (*solutionFound)
             {
-
+                // Print/store the found solution.
                 if (not onlyBestSolution)
                 {
                     solutionCount += 1;
@@ -76,6 +89,7 @@ int main(int argc, char * argv[])
             }
         }
 
+        // Print best solution.
         if(onlyBestSolution)
         {
             cout << bestSolution.rdbuf();
