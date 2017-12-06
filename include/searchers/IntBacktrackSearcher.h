@@ -12,11 +12,11 @@ struct IntBacktrackSearcher
 {
     enum States
     {
-        VariableNotChosen, /// Initial state
-        VariableChosen, /// A variable has been chosen
-        ValueChosen, /// A value for the variable has been chosen
-        SuccessfulPropagation, /// Propagation successful after fixing a variable
-        ValueChecked /// unsat after propagating the chosen value, find another
+        VariableNotChosen, ///< Initial state
+        VariableChosen, ///< A variable has been chosen
+        ValueChosen, ///< A value for the variable has been chosen
+        SuccessfulPropagation, ///< Propagation successful after fixing a variable
+        ValueChecked ///< Need to find another value for the same variable
     };
 
     int backtrackingState;
