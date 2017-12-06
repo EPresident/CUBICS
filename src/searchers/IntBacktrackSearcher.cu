@@ -41,7 +41,8 @@ bool IntBacktrackSearcher::getNextSolution()
         {
             case VariableNotChosen:
             {
-                stack.saveState(backtrackingLevel);
+                stack.saveState(backtrackingLevel, &variables->domains.changes);
+                variables->domains.changes.clear();
 
                 if (variablesChooser.getVariable(backtrackingLevel, &chosenVariable))
                 {
@@ -58,7 +59,7 @@ bool IntBacktrackSearcher::getNextSolution()
             case VariableChosen:
             {
                 if (not variables->domains.isSingleton(chosenVariables.back()))
-                {
+                  {
 
                     if (valuesChooser.getFirstValue(chosenVariables.back(), &chosenValue))
                     {
@@ -114,7 +115,9 @@ bool IntBacktrackSearcher::getNextSolution()
 
             case ValueChecked:
             {
-                stack.restoreState(backtrackingLevel);
+                stack.resetState(&variables->domains.changes);
+                variables->domains.changes.clear();
+
                 if (valuesChooser.getNextValue(chosenVariables.back(), chosenValues.back(), &chosenValue))
                 {
                     chosenValues.back() = chosenValue;
@@ -123,12 +126,14 @@ bool IntBacktrackSearcher::getNextSolution()
                 }
                 else
                 {
-                    stack.clearState(backtrackingLevel);
+                    if(backtrackingLevel > 0)
+                    {
+                        stack.restorePreviousState(backtrackingLevel);
+                    }
 
                     backtrackingLevel -= 1;
                     chosenVariables.pop_back();
                     chosenValues.pop_back();
-
                 }
             }
                 break;
