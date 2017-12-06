@@ -30,6 +30,10 @@ void IntBacktrackStack::deinitialize()
     levelsStacks.deinitialize();
 }
 
+/**
+* Saves the current domain representation for each variable in the stack,
+* with the given backtrack level (assuming there has been a change).
+*/
 cudaDevice void IntBacktrackStack::saveState(int backtrackLevel)
 {
 #ifdef GPU
@@ -53,6 +57,10 @@ cudaDevice void IntBacktrackStack::saveState(int backtrackLevel)
     }
 }
 
+/**
+* Restores the domain representation with the given backtrack level,
+* assuming it is different.
+*/
 cudaDevice void IntBacktrackStack::restoreState(int backtrackLevel)
 {
 #ifdef GPU
@@ -74,6 +82,10 @@ cudaDevice void IntBacktrackStack::restoreState(int backtrackLevel)
     }
 }
 
+/**
+* Clears the state (domain representations) with the given backtrack level
+* from the stack.
+*/
 cudaDevice void IntBacktrackStack::clearState(int backtrackLevel)
 {
 #ifdef GPU
@@ -91,6 +103,10 @@ cudaDevice void IntBacktrackStack::clearState(int backtrackLevel)
     }
 }
 
+/**
+* \return true if "variable" has a different domain (cardinality) in the state 
+* with the last backtrack level.
+*/
 cudaDevice bool IntBacktrackStack::isDomainChanged(int variable)
 {
     return backupsStacks[variable].versions.back() != representations->versions[variable];
