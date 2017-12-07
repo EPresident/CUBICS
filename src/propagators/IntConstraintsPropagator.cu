@@ -87,6 +87,13 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints()
     return (not someEmptyDomain);
 }
 
+/**
+* Check if any constraint needs to be propagated, updating the appropriate
+* flags.
+* Propagation is required if any variable of a constraint has a "Changed" domain
+* event.
+* \see IntDomains
+*/
 cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
 {
 #ifdef GPU
@@ -109,6 +116,10 @@ cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
     }
 }
 
+/**
+* Propagates all constraints flagged in "constraintToPropagate", and flips
+* the respective flag.
+*/
 cudaDevice void IntConstraintsPropagator::collectActions()
 {
 #ifdef GPU
@@ -126,6 +137,10 @@ cudaDevice void IntConstraintsPropagator::collectActions()
     }
 }
 
+/** 
+* Clears the domain events list.
+* \see IntDomains
+*/
 cudaDevice void IntConstraintsPropagator::clearDomainsEvents()
 {
 #ifdef GPU
@@ -139,6 +154,10 @@ cudaDevice void IntConstraintsPropagator::clearDomainsEvents()
     }
 }
 
+/**
+* Perform the domain reduction actions on all variables.
+* \see IntDomains
+*/
 cudaDevice void IntConstraintsPropagator::updateDomains()
 {
 #ifdef GPU
@@ -152,6 +171,7 @@ cudaDevice void IntConstraintsPropagator::updateDomains()
     }
 }
 
+/// Clears the "constraintToPropagate" vector.
 cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
 {
 #if defined(GPU) && defined (__CUDA_ARCH__)
@@ -165,6 +185,7 @@ cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
     }
 }
 
+/// Checks if any domain has become empty, updating the "someEmptyDomain" flag.
 cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
 {
 #ifdef GPU
@@ -181,6 +202,7 @@ cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
     }
 }
 
+/// \return true if all constraints are satisfied.
 cudaDevice bool IntConstraintsPropagator::verifyConstraints()
 {
     allConstraintsSatisfied = true;
@@ -194,6 +216,7 @@ cudaDevice bool IntConstraintsPropagator::verifyConstraints()
     return allConstraintsSatisfied;
 }
 
+/// Updates the "allConstraintsSatisfied" flag, scanning all constraints.
 cudaDevice void IntConstraintsPropagator::checkSatisfiedConstraints()
 {
 #ifdef GPU
