@@ -1,5 +1,6 @@
 #include <variables/IntVariables.h>
 
+/// Allocate memory for "count" variables
 void IntVariables::initialize(int count)
 {
    this->count = 0;
@@ -20,6 +21,7 @@ void IntVariables::deinitialize()
     constraints.deinitialize();
 }
 
+/// Add a new variable with ["min","max"] domain.
 void IntVariables::push(int min, int max)
 {
     domains.push(min, max);
