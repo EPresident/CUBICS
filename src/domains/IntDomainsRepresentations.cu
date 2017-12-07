@@ -1,6 +1,7 @@
 #include <domains/IntDomainsRepresentations.h>
 #include <utils/Utils.h>
 
+/// Initialize the domain representations for "count" variables.
 void IntDomainsRepresentations::initialize(int count)
 {
     minimums.initialize(count);
@@ -24,6 +25,10 @@ void IntDomainsRepresentations::deinitialize()
     bitvectors.initialize();
 }
 
+/** 
+* Add the interval ["min","max"] to a new domain (for a new variable), 
+* using "min" as offset. 
+*/
 void IntDomainsRepresentations::push(int min, int max)
 {
     minimums.push_back(min);
@@ -33,6 +38,7 @@ void IntDomainsRepresentations::push(int min, int max)
 
     bitvectors.resize_by_one();
     int index = minimums.size - 1;
+    // Find how many bitvectors (intervals) are needed to represent the domain
     int maxChunkIndex = getChunkIndex(index, maximums[index]);
     int chunksCount = maxChunkIndex + 1;
     bitvectors.back().initialize(chunksCount);
@@ -41,10 +47,25 @@ void IntDomainsRepresentations::push(int min, int max)
         bitvectors.back().push_back(UINT_MAX);
     }
     int maxBitIndex = getBitIndex(index, maximums[index]);
+    /* 
+    * Use a mask to remove the elements outside the domain. This is
+    * necessary when the last chunk represents more values than needed.
+    * All bits have been set to 1 above, so we need to flip the invalid ones. 
+    */
     unsigned int mask = BitsUtils::getLeftFilledMask(maxBitIndex);
     bitvectors.back()[maxChunkIndex] &= mask;
 }
 
+/** 
+* Add an interval to a new domain (for a new variable).
+* \param min is the lower bound of the interval
+* \param max is the upper bound of the interval
+* \param offset the first value represented by the bitvector
+* \param version the number of modification the domain has had
+* \param cardinality the number of values in the interval
+* \param bitvector a bitvector indicating which values are to be in the domain;
+* \see IntDomainsRepresentations::bitvectors
+*/
 cudaDevice void IntDomainsRepresentations::push(int min, int max, int offset, unsigned int version, Vector<unsigned int>* bitvector)
 {
     minimums.push_back(min);
@@ -55,6 +76,7 @@ cudaDevice void IntDomainsRepresentations::push(int min, int max, int offset, un
     bitvectors.back().initialize(bitvector);
 }
 
+/// Remove the last representation added.
 cudaDevice void IntDomainsRepresentations::pop()
 {
     minimums.pop_back();
@@ -65,6 +87,10 @@ cudaDevice void IntDomainsRepresentations::pop()
     bitvectors.pop_back();
 }
 
+/** 
+* Returns true if the "index"-th chunk contains "val", i.e. the bit
+* representing "val" is 1.
+*/
 cudaDevice bool IntDomainsRepresentations::contain(int index, int val)
 {
     if (minimums[index] <= val and val <= maximums[index])
@@ -81,6 +107,11 @@ cudaDevice bool IntDomainsRepresentations::contain(int index, int val)
     }
 }
 
+/** 
+* Set "nextVal" to point to the next value in the "index"-th domain, after "val".
+* \param nextVal a pointer that will be set to the next value.
+* \return false if no such value exists, true otherwise.
+*/
 cudaDevice bool IntDomainsRepresentations::getNextValue(int index, int val, int* nextVal)
 {
     if (val < maximums[index])
@@ -114,6 +145,12 @@ cudaDevice bool IntDomainsRepresentations::getNextValue(int index, int val, int*
     }
 }
 
+/** 
+* Set "prevVal" to point to the previous value in the "index"-th domain,
+* after "val".
+* \param prevVal a pointer that will be set to the previous value.
+* \return false if no such value exists, true otherwise.
+*/
 cudaDevice bool IntDomainsRepresentations::getPrevValue(int index, int val, int* prevVal)
 {
     if (minimums[index] < val)
@@ -147,6 +184,10 @@ cudaDevice bool IntDomainsRepresentations::getPrevValue(int index, int val, int*
     }
 }
 
+/**
+* Remove the value "val" from the domain of the "index"-th variable, updating
+* the domain representation accordingly (minimum, maximum, cardinality).
+*/
 cudaDevice void IntDomainsRepresentations::remove(int index, int val)
 {
     if (contain(index, val))
@@ -181,6 +222,11 @@ cudaDevice void IntDomainsRepresentations::remove(int index, int val)
     }
 }
 
+/**
+* Remove all values lesser than "val" from the domain of the "index"-th 
+* variable, updating the domain representation accordingly (minimum, 
+* maximum, cardinality).
+*/
 cudaDevice void IntDomainsRepresentations::removeAnyLesserThan(int index, int val)
 {
     if (minimums[index] < val and val <= maximums[index])
@@ -206,7 +252,11 @@ cudaDevice void IntDomainsRepresentations::removeAnyLesserThan(int index, int va
     }
 }
 
-
+/**
+* Remove all values greater than "val" from the domain of the "index"-th 
+* variable, updating the domain representation accordingly (minimum, 
+* maximum, cardinality).
+*/
 cudaDevice void IntDomainsRepresentations::removeAnyGreaterThan(int index, int val)
 {
     if (minimums[index] <= val and val < maximums[index])
@@ -232,6 +282,10 @@ cudaDevice void IntDomainsRepresentations::removeAnyGreaterThan(int index, int v
     }
 }
 
+/**
+* Remove all values other than "val" from the domain of the "index"-th 
+* variable, thus making it a singleton.
+*/
 cudaDevice void IntDomainsRepresentations::keepOnly(int index, int val)
 {
     if (contain(index, val))
@@ -246,6 +300,10 @@ cudaDevice void IntDomainsRepresentations::keepOnly(int index, int val)
     }
 }
 
+/**
+* Remove all values from the domain of the "index"-th variable, thus making it 
+* an empty set.
+*/
 cudaDevice void IntDomainsRepresentations::removeAll(int index)
 {
     minimums[index] = INT_MAX;
