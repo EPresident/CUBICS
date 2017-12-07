@@ -5,6 +5,14 @@
 
 namespace KernelUtils
 {
+    /**
+    * Get the number of n-sized ("groupSize") thread blocks needed to perform 
+    * m tasks ("taskCount").
+    * \param divergence indicates whether the threads within a warp diverge,
+    * i.e. if branching can cause them to execute different instructions.
+    * A warp is a "hardware" group of threads, typically of size 32. CUDA can't
+    * schedule a thread group smaller than a warp of threads.
+    */
     cudaHostDevice inline int getBlockCount(int taskCount, int blockSize, bool divergence = false)
     {
         if (divergence)
@@ -17,6 +25,13 @@ namespace KernelUtils
         }
     }
 
+    /**
+    * Get the task index for a given thread ("threadIndex").
+    * \param divergence indicates whether the threads within a warp diverge,
+    * i.e. if branching can cause them to execute different instructions.
+    * A warp is a "hardware" group of threads, typically of size 32. CUDA can't
+    * schedule a thread group smaller than a warp of threads.
+    */
     cudaDevice inline int getTaskIndex(bool divergence = false)
     {
         int threadIndex = (blockDim.x * blockIdx.x) + threadIdx.x;
