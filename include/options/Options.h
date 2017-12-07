@@ -2,6 +2,7 @@
 
 #include <anyoption/anyoption.h>
 
+/// Struct used to parse and store optional arguments.
 struct Options
 {
 
@@ -12,5 +13,6 @@ struct Options
     AnyOption *opt;
 
     void initialize();
+    /// Parse optional arguments.
     void parseOptions(int argc, char * argv[]);
 };

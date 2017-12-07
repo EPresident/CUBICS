@@ -6,6 +6,11 @@
 
 using namespace std;
 
+/**
+* Initialize the members of the Options struct.
+* solverVersion is hardcoded as 1.0, solutionsCount is defaulted to 1,
+* inputFile is set as a nullptr.
+*/
 void Options::initialize()
 {
     name = "CUBICS (CUDA BasIc Constrain Solver)";
@@ -15,6 +20,7 @@ void Options::initialize()
     opt = new AnyOption();
 }
 
+/// Parse the arguments given from the command line.
 void Options::parseOptions(int argc, char * argv[])
 {
     opt->addUsage("Usage: cubics [OPTIONS]... [FILE]");
