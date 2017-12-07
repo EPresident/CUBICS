@@ -11,6 +11,10 @@ void IntConstraints::initialize()
     parameters.initialize();
 }
 
+/** 
+* Add a new constraint of type "type", whose variables
+* and parameters still have to be set.
+*/
 void IntConstraints::push(int type)
 {
     types.push_back(type);
@@ -32,6 +36,11 @@ void IntConstraints::deinitialize()
     parameters.deinitialize();
 }
 
+/**
+* Propagate the "index"-th constraint. 
+* Propagating means trimming the domains so that the constraint
+* is satisfied.
+*/
 cudaDevice void IntConstraints::propagate(int index, IntVariables* variables)
 {
     switch (types[index])
@@ -56,6 +65,9 @@ cudaDevice void IntConstraints::propagate(int index, IntVariables* variables)
     }
 }
 
+/**
+* Returns true if the "index"-th constraint is satisfied.
+*/
 cudaDevice bool IntConstraints::satisfied(int index, IntVariables* variables)
 {
     switch (types[index])
