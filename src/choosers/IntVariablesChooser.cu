@@ -10,6 +10,10 @@ void IntVariablesChooser::initialzie(int type, IntVariables* variables, Vector<i
     this->backtrackState = backtrackState;
 }
 
+/** 
+* Get a reference to "variable" at the desired backtrack level.
+* \return true if successful.
+*/ 
 cudaDevice bool IntVariablesChooser::getVariable(int backtrackLevel, int* variable)
 {
     switch (type)

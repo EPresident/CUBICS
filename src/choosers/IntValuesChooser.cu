@@ -9,6 +9,10 @@ void IntValuesChooser::initialzie(int type, IntVariables* variables)
     this->variables = variables;
 }
 
+/**
+* Get the first value (following the chooser's criteria) for a variable.
+* \return true if successful.
+*/
 cudaDevice bool IntValuesChooser::getFirstValue(int variable, int* firstValue)
 {
     switch (type)
@@ -21,6 +25,10 @@ cudaDevice bool IntValuesChooser::getFirstValue(int variable, int* firstValue)
     }
 }
 
+/**
+* Get the next value (following the chooser's criteria) for a variable.
+* \return true if successful.
+*/
 cudaDevice bool IntValuesChooser::getNextValue(int variable, int currentValue, int* nextValue)
 {
     switch (type)
