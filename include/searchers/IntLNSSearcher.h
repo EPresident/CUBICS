@@ -1,7 +1,6 @@
 #pragma once
 
 #include <searchers/IntBacktrackSearcher.h>
-#include <random>
 
 /**
 * Struct used to perform Large Neighborhood Search.

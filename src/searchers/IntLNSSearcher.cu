@@ -1,3 +1,4 @@
+#include <random>
 #include <searchers/IntLNSSearcher.h>
 #include <utils/Utils.h>
 #include <wrappers/Wrappers.h>
@@ -9,7 +10,7 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
 
     BTSearcher.initialize(fzModel);
 
-    LNSState = VariableNotChosen;
+    LNSState = Initialized;
     unassignmentRate = unassignRate;
     iterationsDone = 0;
     LNSState = IntLNSSearcher::Initialized;
@@ -48,8 +49,7 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     }
     else
     {
-        LogUtils::error(__PRETTY_FUNCTION__, "Large Neighborhood Search is only"+
-                        " possible on optimization problems!");
+        LogUtils::error(__PRETTY_FUNCTION__, "Large Neighborhood Search is only possible on optimization problems!");
     }
 }
 
@@ -70,7 +70,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
 
     while (not solutionFound)
     {
-        switch (backtrackingState)
+        switch (LNSState)
         {
             case Initialized:
             {
@@ -87,7 +87,8 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 // Mersenne Twister PRNG
                 std::mt_19937 mt_rand(randSeed);
                 // Fill variables vector to be shuffled
-                Vector<int> shuffledVars.initialize(variables->count);
+                Vector<int> shuffledVars;
+                shuffledVars.initialize(variables->count);
                 for(int i = 0; i < variables->count; i += 1)
                 {
                     shuffledVars.push_back(i);
@@ -114,24 +115,31 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 for (int i = 0; i < unassignAmount; i += 1)
                 {
                     int vi = chosenVariables[i];
-                    BTSearcher->representations->minimums[vi] =
-                        BTSearcher->backupsStacks[vi].minimums.[0];
-                    BTSearcher->representations->maximums[vi] =
-                        BTSearcher->backupsStacks[vi].maximums.[0];
-                    BTSearcher->representations->offsets[vi] =
-                        BTSearcher->backupsStacks[vi].offsets.[0];
-                    BTSearcher->representations->versions[vi] =
-                        BTSearcher->backupsStacks[vi].versions.[0];
-                    BTSearcher->representations->bitvectors[vi].
-                        copy(&BTSearcher->backupsStacks[vi].bitvectors.[0]);
+                    BTSearcher.stack.representations->minimums[vi] =
+                        BTSearcher.stack.backupsStacks[vi].minimums[0];
+                    BTSearcher.stack.representations->maximums[vi] =
+                        BTSearcher.stack.backupsStacks[vi].maximums[0];
+                    BTSearcher.stack.representations->offsets[vi] =
+                        BTSearcher.stack.backupsStacks[vi].offsets[0];
+                    BTSearcher.stack.representations->versions[vi] =
+                        BTSearcher.stack.backupsStacks[vi].versions[0];
+                    BTSearcher.stack.representations->bitvectors[vi].
+                        copy(&BTSearcher.stack.backupsStacks[vi].bitvectors[0]);
 
                 }
                 
-                // "Reset" backtrack searcher stack
-                // We don't want it to backtrack our unassignment
-                // FIXME
-                BTSearcher->stack->backupsStacks;
-                BTSearcher->stack->levelsStacks;
+                // Reset backtrack searcher stack
+                // We don't want it to backtrack our unassignment    
+                for (int i = 0; i < variables->count; i += 1)
+                {
+                    BTSearcher.stack.backupsStacks[i].minimums.clear();
+                    BTSearcher.stack.backupsStacks[i].maximums.clear();
+                    BTSearcher.stack.backupsStacks[i].offsets.clear();
+                    BTSearcher.stack.backupsStacks[i].versions.clear();
+                    BTSearcher.stack.backupsStacks[i].bitvectors.clear();
+                    BTSearcher.stack.levelsStacks[i].clear();
+                }
+                
             
                 // Update LNS state
                 ++iterationsDone;

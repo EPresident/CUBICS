@@ -7,8 +7,7 @@ struct IntVariablesChooser
 {
     enum Type
     {
-        InOrder,
-        RestrictedInOrder
+        InOrder
     };
 
     int type;

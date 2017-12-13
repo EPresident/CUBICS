@@ -23,6 +23,12 @@ cudaGlobal void Wrappers::getNextSolution(IntBacktrackSearcher* backtrackSearche
     *solutionFound = backtrackSearcher->getNextSolution();
 }
 
+//Integer LNS searcher
+cudaGlobal void Wrappers::getNextSolution(IntLNSSearcher* LNSSearcher, bool* solutionFound)
+{
+    *solutionFound = LNSSearcher->getNextSolution();
+}
+
 //Integer constraints propagator
 cudaGlobal void Wrappers::propagateConstraints(IntConstraintsPropagator* propagator, bool* satisfiableModel)
 {
