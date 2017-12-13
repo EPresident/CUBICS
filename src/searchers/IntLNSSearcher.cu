@@ -1,7 +1,7 @@
-#include <random>
 #include <searchers/IntLNSSearcher.h>
 #include <utils/Utils.h>
 #include <wrappers/Wrappers.h>
+#include <random>
 
 void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassignRate)
 {
@@ -85,7 +85,8 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 // Choose variables to unassign
                 //chooseVariables();
                 // Mersenne Twister PRNG
-                std::mt_19937 mt_rand(randSeed);
+                std::mt19937 mt_rand(randSeed);
+
                 // Fill variables vector to be shuffled
                 Vector<int> shuffledVars;
                 shuffledVars.initialize(variables->count);
