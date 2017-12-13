@@ -13,7 +13,9 @@ namespace Wrappers
 
     //Integer backtracking searcher
     cudaGlobal void getNextSolution(IntBacktrackSearcher* backtrackSearcher, bool* solutionFound);
-
+    //Integer LNS searcher
+    cudaGlobal void getNextSolution(IntLNSSearcher* LNSSearcher, bool* solutionFound);
+    
     //Integer constraints propagator
     cudaGlobal void propagateConstraints(IntConstraintsPropagator* propagator, bool* satisfiableModel);
     cudaGlobal void setConstraintsToPropagate(IntConstraintsPropagator* propagator);

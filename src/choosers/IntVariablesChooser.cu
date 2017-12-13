@@ -2,6 +2,7 @@
 
 #include <utils/Utils.h>
 #include <choosers/IntInOrderVariablesChooser.h>
+#include <choosers/IntRestrictInOrdVarChooser.h>
 
 void IntVariablesChooser::initialzie(int type, IntVariables* variables, Vector<int>* backtrackState)
 {
@@ -20,6 +21,8 @@ cudaDevice bool IntVariablesChooser::getVariable(int backtrackLevel, int* variab
     {
         case InOrder:
             return IntInOrderVariablesChooser::getVariable(this, backtrackLevel, variable);
+        case RestrictedInOrder:
+            return IntRestrictInOrdVarChooser::getVariable(this, backtrackLevel, variable);
         default:
             LogUtils::error(__PRETTY_FUNCTION__, "Invalid variable chooser type");
             return false;

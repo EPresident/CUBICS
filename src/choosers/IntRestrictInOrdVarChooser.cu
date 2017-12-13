@@ -24,19 +24,3 @@ cudaDevice bool IntRestrictInOrdVarChooser::getVariable(IntVariablesChooser* var
     }
     return true;
 }
-
-void IntRestrictInOrdVarChooser::initialize(int expectedVarCount)
-{
-    if (expectedVarCount < 1)
-    {
-        variables.initialize();
-    } else
-    {
-        variables.initialize(expectedVarCount);
-    }
-}
-
-void IntRestrictInOrdVarChooser::addVariable(int variable)
-{
-    variables.push_back(variable);   
-}
