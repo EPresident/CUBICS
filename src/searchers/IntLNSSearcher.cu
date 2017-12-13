@@ -7,14 +7,16 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     variables = fzModel->intVariables;
     constraints = fzModel->intConstraints;
 
-    chosenVariables.initialize(variables->count);
-    chosenValues.initialize(variables->count);
-
     BTSearcher.initialize(fzModel);
 
     LNSState = VariableNotChosen;
     unassignmentRate = unassignRate;
     iterationsDone = 0;
+    LNSState = IntLNSSearcher::Initialized;
+    unassignAmount = variables->count*unassignRate;
+    randSeed = 1337;
+        
+    chosenVariables.initialize(unassignAmount);
     
 #ifdef GPU
     varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
@@ -73,24 +75,78 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
             case Initialized:
             {
                 // Find first solution
+                solutionFound = BTSearcher.getNextSolution();
+                LNSState = DoUnassignment;
             }
                 break;
 
-            case FirstSolutionFound:
-            {
+            case DoUnassignment:
+            {               
+                // Choose variables to unassign
+                //chooseVariables();
+                // Mersenne Twister PRNG
+                std::mt_19937 mt_rand(randSeed);
+                // Fill variables vector to be shuffled
+                Vector<int> shuffledVars.initialize(variables->count);
+                for(int i = 0; i < variables->count; i += 1)
+                {
+                    shuffledVars.push_back(i);
+                }
+                // Shuffle (Fisher-Yates/Knuth)
+                for(int i = 0; i < variables->count-1; i += 1)
+                {
+                    // We want a random variable index
+                    std::uniform_int_distribution<int> rand_dist(i, variables->count);
+                    int j{rand_dist(mt_rand)};
+                    int tmp{shuffledVars[i]};
+                    shuffledVars[i] = shuffledVars[j];
+                    shuffledVars[j] = tmp;
+                }
+                // Store the chosen variables
+                chosenVariables.clear();
+                for(int i = 0; i < unassignAmount; i += 1)
+                {
+                    chosenVariables.push_back(shuffledVars[i]);
+                }
+                shuffledVars.deinitialize();
+            
                 // Unassign variables
+                for (int i = 0; i < unassignAmount; i += 1)
+                {
+                    int vi = chosenVariables[i];
+                    BTSearcher->representations->minimums[vi] =
+                        BTSearcher->backupsStacks[vi].minimums.[0];
+                    BTSearcher->representations->maximums[vi] =
+                        BTSearcher->backupsStacks[vi].maximums.[0];
+                    BTSearcher->representations->offsets[vi] =
+                        BTSearcher->backupsStacks[vi].offsets.[0];
+                    BTSearcher->representations->versions[vi] =
+                        BTSearcher->backupsStacks[vi].versions.[0];
+                    BTSearcher->representations->bitvectors[vi].
+                        copy(&BTSearcher->backupsStacks[vi].bitvectors.[0]);
+
+                }
+                
+                // "Reset" backtrack searcher stack
+                // We don't want it to backtrack our unassignment
+                // FIXME
+                BTSearcher->stack->backupsStacks;
+                BTSearcher->stack->levelsStacks;
+            
+                // Update LNS state
+                ++iterationsDone;
+                LNSState = VariablesUnassigned;
             }
                 break;
             case VariablesUnassigned:
             {
                 // Begin exploring the new neighborhood
-                ++iterationsDone;
-            }
-                break;
-
-            case NeighborhoodExplored:
-            {
-                // Subtree explored
+                solutionFound = BTSearcher.getNextSolution();
+                if(not solutionFound)
+                {
+                    // Subtree exhausted
+                    LNSState = DoUnassignment;
+                }
             }
                 break;
         }

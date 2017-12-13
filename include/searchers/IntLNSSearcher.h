@@ -1,7 +1,7 @@
 #pragma once
 
 #include <searchers/IntBacktrackSearcher.h>
-
+#include <random>
 
 /**
 * Struct used to perform Large Neighborhood Search.
@@ -17,19 +17,21 @@ struct IntLNSSearcher
     enum States
     {        
         Initialized,
-        FirstSolutionFound,
-        VariablesUnassigned,
-        /// Subtree explored after the unassign
-        NeighborhoodExplored
+        DoUnassignment,
+        VariablesUnassigned
     };
 
     int LNSState;
+    /// PRNG seed
+    unsigned int randSeed;
     /**
     * The percentage (between 0 and 1) of variables that will be unassigned.
     * This means that floor(unassignmentRate) variables will be randomly chosen
     * to have their assignment reverted.
     */
     double unassignmentRate;
+    /// The number of variables that will be unassigned.
+    int unassignAmount;
     /// LNS iterations done (i.e. variables unassignments)
     int iterationsDone;
     
@@ -40,10 +42,6 @@ struct IntLNSSearcher
     IntConstraints* constraints;
 
     IntBacktrackSearcher BTSearcher;
-
-    IntVariablesChooser variablesChooser;
-
-
 
 #ifdef GPU
     /// CUDA blocks needed to handle all the variables
@@ -76,4 +74,12 @@ struct IntLNSSearcher
     * \return true if a solution is found, false otherwise.
     */
     cudaDevice bool getNextSolution();
+    
+    /**
+    * Choose the variables to unassign.
+    * Populates the "chosenVariables" vector by shuffling the variables and taking
+    * the first n, where n is N° of variables times the unassignment rate (floored).
+    * The shuffle is done using the Fisher-Yates/Knuth algorithm.
+    */
+    //cudaDevice void chooseVariables();
 };
