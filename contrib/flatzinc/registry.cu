@@ -417,11 +417,23 @@ namespace FlatZinc {
       std::cerr << "int_in("<<(*ce[0])<<","<<(*ce[1])
         <<")::"<<(*ann)<<"\n";
     }
-
-    void p_abs(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
-      std::cerr << "abs("<<(*ce[0])<<","<<(*ce[1])<<")::"<<(*ann)<<"\n";
-    }
     */
+
+    void p_abs(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) { 
+#ifndef NDEBUG
+      std::cerr << "abs("<<(*ce[0])<<","<<(*ce[1])<<")::"<<(*ann)<<"\n";
+#endif
+      s.intConstraints->push(IntConstraints::Type::IntOptLb);
+      int constraint = s.intConstraints->count - 1;
+
+      int variable = ce[0]->getIntVar();
+      s.intVariables->constraints[variable].push_back(constraint);
+      s.intConstraints->variables[constraint].push_back(variable);
+      
+      variable = ce[1]->getIntVar();
+      s.intVariables->constraints[variable].push_back(constraint);
+      s.intConstraints->variables[constraint].push_back(variable);
+    } 
 
     class IntPoster {
     public:
@@ -463,10 +475,10 @@ namespace FlatZinc {
         registry().add("int_div", &p_int_div);
         registry().add("int_mod", &p_int_mod);
         registry().add("int_min", &p_int_min);
-        registry().add("int_max", &p_int_max);
+        registry().add("int_max", &p_int_max);*/
         registry().add("int_abs", &p_abs);
         registry().add("int_negate", &p_int_negate);
-        */
+        
         registry().add("int_opt_lb", &p_int_opt_lb);
         registry().add("int_opt_ub", &p_int_opt_ub);
         /*

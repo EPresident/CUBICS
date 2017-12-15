@@ -60,6 +60,9 @@ cudaDevice void IntConstraints::propagate(int index, IntVariables* variables)
         case IntLinEq:
             IntLinEq::propagate(this, index, variables);
             break;
+        case IntAbs:
+            IntAbs::propagate(this, index, variables);
+            break;
         default:
             LogUtils::error(__PRETTY_FUNCTION__, "Invalid constraint type");
     }

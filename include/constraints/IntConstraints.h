@@ -8,6 +8,7 @@
 #include <constraints/IntOptLb.h>
 #include <constraints/IntOptUb.h>
 #include <constraints/IntLinEq.h>
+#include <constraints/IntAbs.h>
 
 struct IntConstraints
 {
@@ -17,7 +18,8 @@ struct IntConstraints
         IntLinLe,
         IntOptLb,
         IntOptUb,
-        IntLinEq
+        IntLinEq,
+        IntAbs
     };
 
     /// Number of constraints.
