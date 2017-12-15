@@ -102,7 +102,22 @@ namespace FlatZinc {
 
   void
   FlatZincModel::newBoolVar(BoolVarSpec* vs) {
-    LogUtils::error(__PRETTY_FUNCTION__, "Boolean variables not supported");
+    //LogUtils::error(__PRETTY_FUNCTION__, "Boolean variables not supported");
+    /*if (!vs->domain.some()->interval) {
+      LogUtils::error(__PRETTY_FUNCTION__, "Set domains not supported");
+    }*/
+    if (vs->alias) {
+      //intVariables[intVarCount++] = intVariables[vs->i];
+      LogUtils::error(__PRETTY_FUNCTION__, "Alias variables not supported");
+    } else {
+#ifndef NDEBUG
+      std::cerr << "create new (Bool)IntVar " << intVarCount << "\n";
+#endif
+      intVariables->push(0, 1);
+      intVarCount += 1;
+    }
+    iv_introduced[intVarCount-1] = vs->introduced;
+    iv_boolalias[intVarCount-1] = -1;
     /*
     if (vs->alias) {
       bv[boolVarCount++] = bv[vs->i];
