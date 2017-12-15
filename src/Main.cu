@@ -5,6 +5,7 @@
 #include <utils/Utils.h>
 #include <flatzinc/flatzinc.h>
 #include <searchers/IntBacktrackSearcher.h>
+#include <searchers/IntLNSSearcher.h>
 #include <options/Options.h>
 #include <wrappers/Wrappers.h>
 
@@ -22,22 +23,28 @@ int main(int argc, char * argv[])
     FlatZinc::FlatZincModel* fzModel = FlatZinc::parse(opts.inputFile, printer);
 
     // Initialize backtrack searcher
-    IntBacktrackSearcher* backtrackSearcher;
+    /*IntBacktrackSearcher* backtrackSearcher;
     MemUtils::malloc(&backtrackSearcher);
-    backtrackSearcher->initialize(fzModel);
+    backtrackSearcher->initialize(fzModel);*/
+    IntLNSSearcher* LNSSearcher;
+    MemUtils::malloc(&LNSSearcher);
+    LNSSearcher->initialize(fzModel,0.33333);
 
     bool* satisfiableModel;
-    MemUtils::malloc(&satisfiableModel);
+    MemUtils::malloc(&satisfiableModel); // Must be readable by GPU
     *satisfiableModel = true;
 
     // Make sure the model is satisfiable, by propagating the constaints. (GPU/CPU)
 #ifdef GPU
     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSetLimit(cudaLimitMallocHeapSize, HEAP_SIZE));
 
-    Wrappers::propagateConstraints<<<1, 1>>>(&backtrackSearcher->propagator, satisfiableModel);
+    //Wrappers::propagateConstraints<<<1, 1>>>(&backtrackSearcher->propagator, satisfiableModel);
+    Wrappers::propagateConstraints<<<1, 1>>>(&LNSSearcher->BTSearcher.propagator,
+                                             satisfiableModel);
     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
 #else
-    *satisfiableModel = backtrackSearcher->propagator.propagateConstraints();
+    //*satisfiableModel = backtrackSearcher->propagator.propagateConstraints();
+    *satisfiableModel = LNSSearcher->BTSearcher.propagator.propagateConstraints();
 #endif
 
     if (*satisfiableModel)
@@ -50,24 +57,30 @@ int main(int argc, char * argv[])
 
         // Check if only the best solution is required
         bool onlyBestSolution = false;
-        onlyBestSolution = onlyBestSolution or backtrackSearcher->searchType == IntBacktrackSearcher::SearchType::Maximization;
-        onlyBestSolution = onlyBestSolution or backtrackSearcher->searchType == IntBacktrackSearcher::SearchType::Minimization;
+        //onlyBestSolution = onlyBestSolution or backtrackSearcher->searchType == IntBacktrackSearcher::SearchType::Maximization;
+        onlyBestSolution = onlyBestSolution or LNSSearcher->searchType ==
+            IntLNSSearcher::SearchType::Maximization;
+        //onlyBestSolution = onlyBestSolution or backtrackSearcher->searchType == IntBacktrackSearcher::SearchType::Minimization;
+        onlyBestSolution = onlyBestSolution or LNSSearcher->searchType ==
+            IntLNSSearcher::SearchType::Minimization;
         onlyBestSolution = onlyBestSolution and opts.solutionsCount == 1;
         std::stringstream bestSolution;
         
         /*
         * Find solutions until the search criteria are met.
-        * That means finding 1/n/all solutions, depending on the user
+        * That means finding one/n/all solutions, depending on the user
         * provided arguments.
         */
         while (*solutionFound and (solutionCount < opts.solutionsCount or onlyBestSolution))
         {
             // Get next solution (GPU/CPU)
 #ifdef GPU
-            Wrappers::getNextSolution<<<1, 1>>>(backtrackSearcher, solutionFound);
+            //Wrappers::getNextSolution<<<1, 1>>>(backtrackSearcher, solutionFound);
+            Wrappers::getNextSolution<<<1, 1>>>(LNSSearcher, solutionFound);
             LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
 #else
-            *solutionFound = backtrackSearcher->getNextSolution();
+            //*solutionFound = backtrackSearcher->getNextSolution();
+            *solutionFound = LNSSearcher->getNextSolution();
 #endif
             if (*solutionFound)
             {

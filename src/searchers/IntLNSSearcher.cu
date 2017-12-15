@@ -82,6 +82,10 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
 
             case DoUnassignment:
             {               
+                if(unassignAmount < 1)
+                {
+                    return false;
+                }
                 // Choose variables to unassign
                 //chooseVariables();
                 // Mersenne Twister PRNG
@@ -140,7 +144,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                     BTSearcher.stack.backupsStacks[i].bitvectors.clear();
                     BTSearcher.stack.levelsStacks[i].clear();
                 }
-                
+                BTSearcher.backtrackingState = 0; // Reset backtracker state
             
                 // Update LNS state
                 ++iterationsDone;
