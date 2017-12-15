@@ -35,19 +35,24 @@ struct IntConstraints
     void deinitialize();
 
     /** 
-    * Add a new constraint of type "type", whose variables
+    * Add a new constraint of type \a type, whose variables
     * and parameters still have to be set.
     */
     void push(int type);
 
     /**
-    * Propagate the "index"-th constraint. 
+    * Propagate the \a index-th constraint. 
     * Propagating means trimming the domains so that the constraint
     * is satisfied.
     */
     cudaDevice void propagate(int index, IntVariables* variables);
     /**
-    * Returns true if the "index"-th constraint is satisfied.
+    * \return true if :
+    *  - All variables of the constraint are ground, and the constraint is satisfied.
+    *  - At least one variable is not ground (domain not singleton).
+    *
+    * True is returned in the second case because of how \a satisfied() is used 
+    * inside \a propagate().
     */
     cudaDevice bool satisfied(int index, IntVariables* variables);
 };
