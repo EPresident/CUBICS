@@ -86,6 +86,9 @@ cudaDevice bool IntConstraints::satisfied(int index, IntVariables* variables)
         case IntLinEq:
             return IntLinEq::satisfied(this, index, variables);
             break;
+        case IntAbs:
+            return IntAbs::satisfied(this, index, variables);
+            break;
         default:
             LogUtils::error(__PRETTY_FUNCTION__, "Invalid constraint type");
             return false;
