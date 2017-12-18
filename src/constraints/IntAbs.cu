@@ -3,91 +3,63 @@
 #include <constraints/IntAbs.h>
 #include <data_structures/Vector.h>
 #include <constraints/IntConstraints.h>
+/**
+* \file Integer absolute value constraint.
+* |a| = b      a,b are variables.
+*/
 
+/** 
+* Enforce arc-consistency for this constraint.
+* Arc consistency has been chosen because the cost of the propagation
+* is only O(n) (i.e. linear) if n = max{domain(a), domain(b)};
+* that means it should pay off to go for arc instead of bounds consistency!
+*/
 cudaDevice void IntAbs::propagate(IntConstraints* constraints, int index, IntVariables* variables)
 {
     Vector<int>* constraintVariables = &constraints->variables[index];
-    Vector<int>* constraintParameters = &constraints->parameters[index];
+    
+    // 0 is the index of a, 1 is the index of b.
+    int indexA = constraintVariables->at(0);
+    int indexB = constraintVariables->at(1);
+    
+    //int maxA = variables->domains.getMax(indexA);
+    //int maxB = variables->domains.getMax(indexB);
 
-    int sumPosCoeffLowValue = 0;
-    int sumPosCoeffHighValue = 0;
-    int sumNegCoeffLowValue = 0;
-    int sumNegCoeffHighValue = 0;
-    for (int i = 0; i < constraintVariables->size; i += 1)
+    // Check support for values of b
+    // Easy: for each value of b we need to check two of a.
+    int b = variables->domains.getMin(indexB);
+    do
     {
-        int variableIndex = constraintVariables->at(i);
-        int variableCoefficient = constraintParameters->at(i);
-
-        if (variableCoefficient > 0)
+        if( 
+            ! variables->domains.representations.contain(indexA,b) &&
+            ! variables->domains.representations.contain(indexA,-b) 
+          )
         {
-            sumPosCoeffLowValue += variableCoefficient * variables->
-                domains.getMin(variableIndex);
-            sumPosCoeffHighValue += variableCoefficient * variables->
-                domains.getMax(variableIndex);
+            variables->domains.actions.removeElement(indexB,b);
         }
-        else
-        {
-            sumNegCoeffLowValue += (-variableCoefficient) * variables->
-                domains.getMin(variableIndex);
-            sumNegCoeffHighValue += (-variableCoefficient) * variables->
-                domains.getMax(variableIndex);
-        }
-    }
-
-    int b = constraintParameters->back();
-    for (int i = 0; i < constraintVariables->size; i += 1)
+        
+    } while (!variables->domains.representations.getNextValue(indexB,b,&b));
+      
+    // Check support for values of a
+    // Even easier: for each val of a check one of b. 
+    int a = variables->domains.getMin(indexA);
+    do
     {
-        int variableIndex = constraintVariables->at(i);
-        int variableCoefficient = constraintParameters->at(i);
-
-        if (variables->domains.isSingleton(variableIndex))
+        if( 
+            ( a < 0 && !variables->domains.representations.contain(indexB,-a) ) ||
+            ( a >= 0 && !variables->domains.representations.contain(indexB, a) )
+          )
         {
-            continue;
+            variables->domains.actions.removeElement(indexA,a);
         }
-
-        if (variableCoefficient > 0)
-        {
-            int variableLowContribution = variableCoefficient * variables->
-                domains.getMin(variableIndex);
-            int variableHightContribution = variableCoefficient * variables->
-                domains.getMax(variableIndex);
-
-            float alpha = (b - (sumPosCoeffLowValue - variableLowContribution) +
-                           sumNegCoeffHighValue) / static_cast<float>(variableCoefficient);
-            float gamma = (b - (sumPosCoeffHighValue - variableHightContribution) +
-                           sumNegCoeffLowValue) / static_cast<float>(variableCoefficient);
-
-            variables->domains.actions.removeAnyGreaterThan(
-                variableIndex, static_cast<int>(floor(alpha)));
-            variables->domains.actions.removeAnyLesserThan(
-                variableIndex, static_cast<int>(ceil(gamma)));
-
-        }
-        else
-        {
-            int variableLowContribution = (-variableCoefficient) * variables->
-                domains.getMin(variableIndex);
-            int variableHightContribution = (-variableCoefficient) * variables->
-                domains.getMax(variableIndex);
-
-            float beta = (-b + sumPosCoeffLowValue - (sumNegCoeffHighValue -
-                  variableHightContribution)) / static_cast<float>(-variableCoefficient);
-            float delta = (-b + sumPosCoeffHighValue - (sumNegCoeffLowValue -
-                    variableLowContribution)) / static_cast<float>(-variableCoefficient);
-
-            variables->domains.actions.removeAnyLesserThan(
-                variableIndex, static_cast<int>(ceil(beta)));
-            variables->domains.actions.removeAnyGreaterThan(
-                variableIndex, static_cast<int>(floor(delta)));
-        }
-    }
+    } while (!variables->domains.representations.getNextValue(indexA,a,&a));
+    
 }
 
 cudaDevice bool IntAbs::satisfied(IntConstraints* constraints, int index, IntVariables* variables)
 {
     //Satisfaction check is performed only when all variables are ground
     Vector<int>* constraintVariables = &constraints->variables[index];
-    Vector<int>* constraintParameters = &constraints->parameters[index];
 
     for (int i = 0; i < constraintVariables->size; i += 1)
     {
