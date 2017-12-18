@@ -477,7 +477,7 @@ namespace FlatZinc {
         registry().add("int_min", &p_int_min);
         registry().add("int_max", &p_int_max);*/
         registry().add("int_abs", &p_abs);
-        registry().add("int_negate", &p_int_negate);
+        //registry().add("int_negate", &p_int_negate);
         
         registry().add("int_opt_lb", &p_int_opt_lb);
         registry().add("int_opt_ub", &p_int_opt_ub);
