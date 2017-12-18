@@ -17,6 +17,7 @@
 cudaDevice void IntAbs::propagate(IntConstraints* constraints, int index, IntVariables* variables)
 {
     Vector<int>* constraintVariables = &constraints->variables[index];
+    IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
     
     // 0 is the index of a, 1 is the index of b.
     int indexA = constraintVariables->at(0);
@@ -31,14 +32,14 @@ cudaDevice void IntAbs::propagate(IntConstraints* constraints, int index, IntVar
     do
     {
         if( 
-            ! variables->domains.representations.contain(indexA,b) &&
-            ! variables->domains.representations.contain(indexA,-b) 
+            ! intDomRepr->contain(indexA,b) &&
+            ! intDomRepr->contain(indexA,-b) 
           )
         {
             variables->domains.actions.removeElement(indexB,b);
         }
         
-    } while (!variables->domains.representations.getNextValue(indexB,b,&b));
+    } while (!intDomRepr->getNextValue(indexB,b,&b));
       
     // Check support for values of a
     // Even easier: for each val of a check one of b. 
@@ -46,13 +47,13 @@ cudaDevice void IntAbs::propagate(IntConstraints* constraints, int index, IntVar
     do
     {
         if( 
-            ( a < 0 && !variables->domains.representations.contain(indexB,-a) ) ||
-            ( a >= 0 && !variables->domains.representations.contain(indexB, a) )
+            ( a < 0 && !intDomRepr->contain(indexB,-a) ) ||
+            ( a >= 0 && !intDomRepr->contain(indexB, a) )
           )
         {
             variables->domains.actions.removeElement(indexA,a);
         }
-    } while (!variables->domains.representations.getNextValue(indexA,a,&a));
+    } while (!intDomRepr->getNextValue(indexA,a,&a));
     
 }
 
