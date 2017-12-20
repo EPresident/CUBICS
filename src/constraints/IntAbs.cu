@@ -1,4 +1,5 @@
 #include <cmath>
+#include <algorithm>
 
 #include <constraints/IntAbs.h>
 #include <data_structures/Vector.h>
@@ -9,26 +10,64 @@
 */
 
 /** 
-* Enforce arc-consistency for this constraint.
-* Arc consistency has been chosen because the cost of the propagation
-* is only O(n) (i.e. linear) if n = max{domain(a), domain(b)};
-* that means it should pay off to go for arc instead of bounds consistency!
+* Enforce bounds-consistency for this constraint.
 */
 cudaDevice void IntAbs::propagate(IntConstraints* constraints, int index, IntVariables* variables)
 {
     Vector<int>* constraintVariables = &constraints->variables[index];
-    IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
+    //IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
     
     // 0 is the index of a, 1 is the index of b.
     int indexA = constraintVariables->at(0);
     int indexB = constraintVariables->at(1);
     
-    //int maxA = variables->domains.getMax(indexA);
-    //int maxB = variables->domains.getMax(indexB);
+    // First off try to cut as much of the domains as possible;
+    // This is achieved by looking at max/min values
+    // ~ bounds consistency
+    int maxA = variables->domains.getMax(indexA);
+    int maxB = variables->domains.getMax(indexB);
+    int minA = variables->domains.getMin(indexA);
+    // b has to be positive, of course. |a| is always positive.
+    if (variables->domains.getMin(indexB) < 0)
+    {
+        variables->domains.actions.removeAnyLesserThan(indexB,0);
+    }
+    // Check B to A
+    // A's domain can be at most [-maxB,maxB]
+    // (These below are domains, as an example)
+    // A |----------0-----------|
+    // B            0-------|
+    // A'   |-------0-------|
+    if( maxA > maxB )
+    {
+        variables->domains.actions.removeAnyGreaterThan(indexA,maxB);
+        maxA = maxB;
+    }
+    if( minA < -maxB )
+    {
+        variables->domains.actions.removeAnyLesserThan(indexA,-maxB);
+        minA = -maxB;
+    }
+    // Check A to B (is this really needed?)
+    // B's domain can be at most [-n,n] where n = max{|minA|,|maxA|}
+    // A        |---0--------|
+    // B            0----------------|
+    // B'           0--------|
+    // or
+    // A     |------0--|
+    // B            0----------------|
+    // B'           0------|
+    int boundB {std::max(abs(minA),abs(maxA))};
+    if( maxB > boundB )
+    {
+        variables->domains.actions.removeAnyGreaterThan(indexB,boundB);
+        maxB = boundB;
+    }
 
+    // Now remove single elements from the domains (more costly)
     // Check support for values of b
     // Easy: for each value of b we need to check two of a.
-    int b = variables->domains.getMin(indexB);
+    /*int b = variables->domains.getMin(indexB);
     do
     {
         if( 
@@ -53,7 +92,7 @@ cudaDevice void IntAbs::propagate(IntConstraints* constraints, int index, IntVar
         {
             variables->domains.actions.removeElement(indexA,a);
         }
-    } while (intDomRepr->getNextValue(indexA,a,&a));
+    } while (intDomRepr->getNextValue(indexA,a,&a));*/
     
 }
 
