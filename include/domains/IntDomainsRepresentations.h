@@ -66,7 +66,13 @@ struct IntDomainsRepresentations
     */
     cudaHostDevice inline int getChunkIndex(int index, int val)
     {
-        return abs(val - offsets[index]) / UINT_BIT_SIZE;
+        /*long v {static_cast<long>(val)};
+        long oi {static_cast<long>(offsets[index])};
+        long ubs {static_cast<long>(UINT_BIT_SIZE)};
+        long ret {(v-oi)/ubs};
+        return ret;*/
+        return labs(static_cast<long>(val) - static_cast<long>(offsets[index])) / 
+            static_cast<long>(UINT_BIT_SIZE);
     }
 
     /**

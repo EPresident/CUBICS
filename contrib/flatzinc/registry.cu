@@ -44,6 +44,7 @@
 
 #include <utils/Utils.h>
 #include <constraints/IntConstraints.h>
+#include <utils/LogUtils.h>
 
 namespace FlatZinc {
 
@@ -426,13 +427,27 @@ namespace FlatZinc {
       s.intConstraints->push(IntConstraints::Type::IntAbs);
       int constraint = s.intConstraints->count - 1;
 
-      int variable = ce[0]->getIntVar();
-      s.intVariables->constraints[variable].push_back(constraint);
-      s.intConstraints->variables[constraint].push_back(variable);
-      
-      variable = ce[1]->getIntVar();
-      s.intVariables->constraints[variable].push_back(constraint);
-      s.intConstraints->variables[constraint].push_back(variable);
+      int variable;
+      for(int i = 0; i < 2; i += 1)
+      {
+          variable = -1;
+          if(ce[i]->isInt())
+          {
+              IntVarSpec* vs = new IntVarSpec(ce[i]->getInt(), true);
+              s.newIntVar(vs);
+              variable = s.intVariables->count - 1;
+          }
+          else if(ce[i]->isIntVar())
+          {
+              variable = ce[i]->getIntVar();
+          }
+          else
+          {
+              LogUtils::error(__PRETTY_FUNCTION__, "Unexpected argument");
+          }
+          s.intVariables->constraints[variable].push_back(constraint);
+          s.intConstraints->variables[constraint].push_back(variable);
+      }
     } 
 
     class IntPoster {

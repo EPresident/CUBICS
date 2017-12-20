@@ -74,7 +74,7 @@ namespace FlatZinc {
 
   void
   FlatZincModel::newIntVar(IntVarSpec* vs) {
-    if (!vs->domain.some()->interval) {
+    if (vs->domain.some() and !vs->domain.some()->interval) {
       LogUtils::error(__PRETTY_FUNCTION__, "Set domains not supported");
     }
     if (vs->alias) {
@@ -84,7 +84,21 @@ namespace FlatZinc {
 #ifndef NDEBUG
       std::cerr << "create new IntVar " << intVarCount << "\n";
 #endif
-      intVariables->push(vs->domain.some()->min, vs->domain.some()->max);
+      int min = INT_MIN;
+      int max = INT_MAX;
+
+      if(vs->assigned)
+      {
+          min = vs->i;
+          max = vs->i;
+      }
+      else if(vs->domain.some())
+      {
+          min = vs->domain.some()->min;
+          max = vs->domain.some()->max;
+      }
+
+      intVariables->push(min, max);
       intVarCount += 1;
     }
     iv_introduced[intVarCount-1] = vs->introduced;
