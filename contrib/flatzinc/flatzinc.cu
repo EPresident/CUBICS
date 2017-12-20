@@ -102,7 +102,7 @@ namespace FlatZinc {
 
   void
   FlatZincModel::newBoolVar(BoolVarSpec* vs) {
-    //LogUtils::error(__PRETTY_FUNCTION__, "Boolean variables not supported");
+    LogUtils::error(__PRETTY_FUNCTION__, "Boolean variables not supported");
     /*if (!vs->domain.some()->interval) {
       LogUtils::error(__PRETTY_FUNCTION__, "Set domains not supported");
     }*/

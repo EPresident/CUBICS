@@ -423,7 +423,7 @@ namespace FlatZinc {
 #ifndef NDEBUG
       std::cerr << "abs("<<(*ce[0])<<","<<(*ce[1])<<")::"<<(*ann)<<"\n";
 #endif
-      s.intConstraints->push(IntConstraints::Type::IntOptLb);
+      s.intConstraints->push(IntConstraints::Type::IntAbs);
       int constraint = s.intConstraints->count - 1;
 
       int variable = ce[0]->getIntVar();
