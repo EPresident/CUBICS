@@ -39,7 +39,7 @@ cudaDevice void IntAbs::propagate(IntConstraints* constraints, int index, IntVar
             variables->domains.actions.removeElement(indexB,b);
         }
         
-    } while (!intDomRepr->getNextValue(indexB,b,&b));
+    } while (intDomRepr->getNextValue(indexB,b,&b));
       
     // Check support for values of a
     // Even easier: for each val of a check one of b. 
@@ -53,7 +53,7 @@ cudaDevice void IntAbs::propagate(IntConstraints* constraints, int index, IntVar
         {
             variables->domains.actions.removeElement(indexA,a);
         }
-    } while (!intDomRepr->getNextValue(indexA,a,&a));
+    } while (intDomRepr->getNextValue(indexA,a,&a));
     
 }
 
