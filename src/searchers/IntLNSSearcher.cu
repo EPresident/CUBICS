@@ -2,6 +2,7 @@
 #include <utils/Utils.h>
 #include <wrappers/Wrappers.h>
 #include <random>
+#include <algorithm>
 
 void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassignRate)
 {
@@ -145,6 +146,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                     BTSearcher.stack.levelsStacks[i].clear();
                 }
                 BTSearcher.backtrackingState = 0; // Reset backtracker state
+                BTSearcher.backtrackingLevel = 0;
             
                 // Update LNS state
                 ++iterationsDone;
