@@ -28,7 +28,7 @@ int main(int argc, char * argv[])
     backtrackSearcher->initialize(fzModel);*/
     IntLNSSearcher* LNSSearcher;
     MemUtils::malloc(&LNSSearcher);
-    LNSSearcher->initialize(fzModel,0.33333);
+    LNSSearcher->initialize(fzModel,0.33333, 10);
 
     bool* satisfiableModel;
     MemUtils::malloc(&satisfiableModel); // Must be readable by GPU

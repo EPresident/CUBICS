@@ -33,6 +33,8 @@ struct IntLNSSearcher
     int unassignAmount;
     /// LNS iterations done (i.e. variables unassignments)
     int iterationsDone;
+    /// LNS iterations to do
+    int maxIterations;
     
     /// Indicates the variables to unassign.
     Vector<int> chosenVariables;
@@ -65,7 +67,8 @@ struct IntLNSSearcher
     * \param unassignRate the percentage (between 0 and 1) of variables 
     * that will be unassigned.
     */
-    void initialize(FlatZinc::FlatZincModel* fzModel, double unassignRate);
+    void initialize(FlatZinc::FlatZincModel* fzModel, double unassignRate,
+                   int iterations);
     void deinitialize();
 
     /**

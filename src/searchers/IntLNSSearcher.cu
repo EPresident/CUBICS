@@ -4,7 +4,8 @@
 #include <random>
 #include <algorithm>
 
-void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassignRate)
+void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassignRate,
+                                int iterations)
 {
     variables = fzModel->intVariables;
     constraints = fzModel->intConstraints;
@@ -17,7 +18,8 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     LNSState = IntLNSSearcher::Initialized;
     unassignAmount = variables->count*unassignRate;
     randSeed = 1337;
-        
+    maxIterations = iterations;
+    
     chosenVariables.initialize(unassignAmount);
     
 #ifdef GPU
@@ -69,7 +71,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
 {
     bool solutionFound = false;
 
-    while (not solutionFound)
+    while (not solutionFound && iterationsDone < maxIterations)
     {
         switch (LNSState)
         {
@@ -131,7 +133,6 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                         BTSearcher.stack.backupsStacks[vi].versions[0];
                     BTSearcher.stack.representations->bitvectors[vi].
                         copy(&BTSearcher.stack.backupsStacks[vi].bitvectors[0]);
-
                 }
                 
                 // Reset backtrack searcher stack
@@ -147,6 +148,8 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 }
                 BTSearcher.backtrackingState = 0; // Reset backtracker state
                 BTSearcher.backtrackingLevel = 0;
+                BTSearcher.chosenVariables.clear();
+                BTSearcher.chosenValues.clear();
             
                 // Update LNS state
                 ++iterationsDone;
