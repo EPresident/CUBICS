@@ -129,8 +129,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                         BTSearcher.stack.backupsStacks[vi].maximums[0];
                     BTSearcher.stack.representations->offsets[vi] =
                         BTSearcher.stack.backupsStacks[vi].offsets[0];
-                    BTSearcher.stack.representations->versions[vi] =
-                        BTSearcher.stack.backupsStacks[vi].versions[0];
+                    // Versions are reset below, for all variables             
                     BTSearcher.stack.representations->bitvectors[vi].
                         copy(&BTSearcher.stack.backupsStacks[vi].bitvectors[0]);
                 }
@@ -145,6 +144,8 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                     BTSearcher.stack.backupsStacks[i].versions.clear();
                     BTSearcher.stack.backupsStacks[i].bitvectors.clear();
                     BTSearcher.stack.levelsStacks[i].clear();
+                    // Reset versions (n° of modifications to domains)
+                    BTSearcher.stack.representations->versions[i] = 0;
                 }
                 BTSearcher.backtrackingState = 0; // Reset backtracker state
                 BTSearcher.backtrackingLevel = 0;
