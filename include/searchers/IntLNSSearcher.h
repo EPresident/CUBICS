@@ -5,10 +5,10 @@
 /**
 * Struct used to perform Large Neighborhood Search.
 * Basically works like this: after a solution has been found, unassign n 
-* variables at random and find the best solution from there (using 
-* something like IntBacktrackSearcher).
+* variables at random and find the best/first improving solution from there 
+* (using something like IntBacktrackSearcher). Repeat.
 *
-* \author Elia
+* \author Elia Calligaris
 * \see IntBacktrackSearcher
 */
 struct IntLNSSearcher
@@ -41,7 +41,14 @@ struct IntLNSSearcher
     
     IntVariables* variables;
     IntConstraints* constraints;
-
+    /**
+    * Here go the domains representation backups. The i-th 
+    * representation is for the i-th variable, and has two "entries":
+    * - the first is for the initial domain (before solving begins);
+    * - the second is for the best solution found during the search.
+    */
+    Vector<IntDomainsRepresentations> domainsBackup;
+    
     IntBacktrackSearcher BTSearcher;
 
 #ifdef GPU
@@ -78,10 +85,21 @@ struct IntLNSSearcher
     cudaDevice bool getNextSolution();
     
     /**
-    * Choose the variables to unassign.
-    * Populates the "chosenVariables" vector by shuffling the variables and taking
-    * the first n, where n is N° of variables times the unassignment rate (floored).
-    * The shuffle is done using the Fisher-Yates/Knuth algorithm.
+    * Back up the initial domains by copying the current domain 
+    * representation inside \a domainsBackup.
     */
-    //cudaDevice void chooseVariables();
+    cudaDevice void backupInitialDomains();
+    
+    /**
+    * Back up the best solution found so far by copying the 
+    * current domain representation inside \a domainsBackup.
+    * Beware that no optimality check are performed.
+    */
+    cudaDevice void saveBestSolution();
+    
+    /**
+    * Restore the best solution found so far, by overwriting the current
+    * domains representation.
+    */
+    cudaDevice void restoreBestSolution();
 };

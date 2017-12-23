@@ -23,10 +23,22 @@ cudaGlobal void Wrappers::getNextSolution(IntBacktrackSearcher* backtrackSearche
     *solutionFound = backtrackSearcher->getNextSolution();
 }
 
-//Integer LNS searcher
+//----------------------
+// Integer LNS searcher
+//----------------------
 cudaGlobal void Wrappers::getNextSolution(IntLNSSearcher* LNSSearcher, bool* solutionFound)
 {
     *solutionFound = LNSSearcher->getNextSolution();
+}
+
+cudaGlobal void Wrappers::saveBestSolution(IntLNSSearcher* LNSSearcher)
+{
+    LNSSearcher->saveBestSolution();
+}
+
+cudaGlobal void Wrappers::restoreBestSolution(IntLNSSearcher* LNSSearcher)
+{
+    LNSSearcher->restoreBestSolution();
 }
 
 //Integer constraints propagator

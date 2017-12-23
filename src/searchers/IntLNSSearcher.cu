@@ -3,6 +3,7 @@
 #include <wrappers/Wrappers.h>
 #include <random>
 #include <algorithm>
+#include <cassert>
 
 void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassignRate,
                                 int iterations)
@@ -11,6 +12,13 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     constraints = fzModel->intConstraints;
 
     BTSearcher.initialize(fzModel);
+    chosenVariables.initialize(unassignAmount);
+    domainsBackup.initialize(variables->count);
+    domainsBackup.resize(variables->count);
+    for(int i = 0; i < variables->count; i += 1)
+    {
+        domainsBackup[i].initialize(2);
+    }
 
     LNSState = Initialized;
     unassignmentRate = unassignRate;
@@ -18,9 +26,8 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     LNSState = IntLNSSearcher::Initialized;
     unassignAmount = variables->count*unassignRate;
     randSeed = 1337;
-    maxIterations = iterations;
-    
-    chosenVariables.initialize(unassignAmount);
+    maxIterations = iterations;  
+
     
 #ifdef GPU
     varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
@@ -58,8 +65,12 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
 
 void IntLNSSearcher::deinitialize()
 {
+    for(int i = 0; i < variables->count; i += 1)
+    {
+        domainsBackup[i].deinitialize();
+    }
+    domainsBackup.deinitialize();
     chosenVariables.deinitialize();
-    
     BTSearcher.deinitialize();
 }
 
@@ -77,9 +88,20 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
         {
             case Initialized:
             {
+                // Backup initial domains
+                backupInitialDomains();
+                
                 // Find first solution
                 solutionFound = BTSearcher.getNextSolution();
                 LNSState = DoUnassignment;
+                // Save solution
+                #ifdef GPU
+                    Wrappers::saveBestSolution
+                        <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>();
+                    cudaDeviceSynchronize();
+                #else
+                    saveBestSolution();
+                #endif
             }
                 break;
 
@@ -119,19 +141,29 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 }
                 shuffledVars.deinitialize();
             
+                // Unassignment will be performed starting from the
+                // best solution found so far
+                #ifdef GPU
+                    Wrappers::restoreBestSolution
+                        <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>();
+                    cudaDeviceSynchronize();
+                #else
+                    restoreBestSolution();
+                #endif
+            
                 // Unassign variables
                 for (int i = 0; i < unassignAmount; i += 1)
                 {
                     int vi = chosenVariables[i];
                     BTSearcher.stack.representations->minimums[vi] =
-                        BTSearcher.stack.backupsStacks[vi].minimums[0];
+                        domainsBackup[vi].minimums[0];
                     BTSearcher.stack.representations->maximums[vi] =
-                        BTSearcher.stack.backupsStacks[vi].maximums[0];
+                        domainsBackup[vi].maximums[0];
                     BTSearcher.stack.representations->offsets[vi] =
-                        BTSearcher.stack.backupsStacks[vi].offsets[0];
+                        domainsBackup[vi].offsets[0];
                     // Versions are reset below, for all variables             
                     BTSearcher.stack.representations->bitvectors[vi].
-                        copy(&BTSearcher.stack.backupsStacks[vi].bitvectors[0]);
+                        copy(&domainsBackup[vi].bitvectors[0]);
                 }
                 
                 // Reset backtrack searcher stack
@@ -166,6 +198,17 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                     // Subtree exhausted
                     LNSState = DoUnassignment;
                 }
+                else
+                {
+                    // Backup improving solution
+                    #ifdef GPU
+                        Wrappers::saveBestSolution
+                            <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>();
+                        cudaDeviceSynchronize();
+                    #else
+                        saveBestSolution();
+                    #endif
+                }
             }
                 break;
         }
@@ -174,3 +217,76 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
     return solutionFound;
 }
 
+/**
+* Back up the initial domains.
+*/
+cudaDevice void IntLNSSearcher::backupInitialDomains()
+{
+/*#ifdef GPU
+    int vi = KernelUtils::getTaskIndex();
+    if (vi >= 0 and vi < variables->count)
+#else*/
+    for (int vi = 0; vi < variables->count; vi += 1)
+//#endif
+    {   
+        IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
+        int min = intDomRepr->minimums[vi];
+        int max = intDomRepr->maximums[vi];
+        int offset = intDomRepr->offsets[vi];
+        int version = intDomRepr->versions[vi];
+        Vector<unsigned int>* bitvector = &intDomRepr->bitvectors[vi];
+        domainsBackup[vi].push(min, max, offset, version, bitvector);
+    }
+}
+
+/**
+* Back up the best solution found so far.
+* Beware that no optimality checks are performed.
+*/
+cudaDevice void IntLNSSearcher::saveBestSolution()
+{
+#ifdef GPU
+    int vi = KernelUtils::getTaskIndex();
+    if (vi >= 0 and vi < variables->count)
+#else
+    for (int vi = 0; vi < variables->count; vi += 1)
+#endif
+    {   
+        // Make sure there are at most two entries per variable,
+        // i.e. the initial domain and the best solution.
+        if(domainsBackup[vi].minimums.size > 1)
+        {
+            assert(domainsBackup[vi].minimums.size <= 2);
+            domainsBackup[vi].pop();
+        }
+        IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
+        int min = intDomRepr->minimums[vi];
+        int max = intDomRepr->maximums[vi];
+        int offset = intDomRepr->offsets[vi];
+        int version = intDomRepr->versions[vi];
+        Vector<unsigned int>* bitvector = &intDomRepr->bitvectors[vi];
+        domainsBackup[vi].push(min, max, offset, version, bitvector);
+    }
+}
+
+/**
+* Restore the best solution found so far, by overwriting the current
+* domains representation.
+*/
+cudaDevice void IntLNSSearcher::restoreBestSolution()
+{
+#ifdef GPU
+    int vi = KernelUtils::getTaskIndex();
+    if (vi >= 0 and vi < variables->count)
+#else
+    for (int vi = 0; vi < variables->count; vi += 1)
+#endif
+    {
+        IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
+        intDomRepr->minimums[vi] = domainsBackup[vi].minimums.back();
+        intDomRepr->maximums[vi] = domainsBackup[vi].maximums.back();
+        intDomRepr->offsets[vi] = domainsBackup[vi].offsets.back();
+        intDomRepr->versions[vi] = domainsBackup[vi].versions.back();
+        intDomRepr->bitvectors[vi].copy(&domainsBackup[vi].bitvectors.back());
+    }
+}
