@@ -1,9 +1,9 @@
 #include <searchers/IntLNSSearcher.h>
 #include <utils/Utils.h>
 #include <wrappers/Wrappers.h>
-#include <random>
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 
 void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassignRate,
                                 int iterations)
@@ -28,6 +28,7 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     randSeed = 1337;
     maxIterations = iterations;  
 
+    mt_rand = std::mt19937(randSeed);
     
 #ifdef GPU
     varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
@@ -111,11 +112,6 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 {
                     return false;
                 }
-                // Choose variables to unassign
-                //chooseVariables();
-                // Mersenne Twister PRNG
-                std::mt19937 mt_rand(randSeed);
-
                 // Fill variables vector to be shuffled
                 Vector<int> shuffledVars;
                 shuffledVars.initialize(variables->count);
@@ -123,11 +119,12 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 {
                     shuffledVars.push_back(i);
                 }
+                
                 // Shuffle (Fisher-Yates/Knuth)
                 for(int i = 0; i < variables->count-1; i += 1)
                 {
                     // We want a random variable index
-                    std::uniform_int_distribution<int> rand_dist(i, variables->count);
+                    std::uniform_int_distribution<int> rand_dist(i, variables->count-1);
                     int j{rand_dist(mt_rand)};
                     int tmp{shuffledVars[i]};
                     shuffledVars[i] = shuffledVars[j];
@@ -138,6 +135,11 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 for(int i = 0; i < unassignAmount; i += 1)
                 {
                     chosenVariables.push_back(shuffledVars[i]);
+                    #ifndef NDEBUG
+                        std::cerr << "LNS[" << iterationsDone+1 << 
+                            "]: unassigning variable " << 
+                            shuffledVars[i] << "\n";
+                    #endif
                 }
                 shuffledVars.deinitialize();
             

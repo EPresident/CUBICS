@@ -1,6 +1,7 @@
 #pragma once
 
 #include <searchers/IntBacktrackSearcher.h>
+#include <random>
 
 /**
 * Struct used to perform Large Neighborhood Search.
@@ -50,6 +51,9 @@ struct IntLNSSearcher
     Vector<IntDomainsRepresentations> domainsBackup;
     
     IntBacktrackSearcher BTSearcher;
+    
+    // Mersenne Twister PRNG
+    std::mt19937 mt_rand;
 
 #ifdef GPU
     /// CUDA blocks needed to handle all the variables
