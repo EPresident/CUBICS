@@ -123,8 +123,8 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 // Shuffle (Fisher-Yates/Knuth)
                 for(int i = 0; i < variables->count-1; i += 1)
                 {
-                    // We want a random variable index
-                    std::uniform_int_distribution<int> rand_dist(i, variables->count-1);
+                    // We want a random variable index (bar the optVariable)
+                    std::uniform_int_distribution<int> rand_dist(i, variables->count-2);
                     int j{rand_dist(mt_rand)};
                     int tmp{shuffledVars[i]};
                     shuffledVars[i] = shuffledVars[j];
@@ -142,6 +142,8 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                     #endif
                 }
                 shuffledVars.deinitialize();
+                // Unassign optimization variable
+                chosenVariables.push_back(optVariable);
             
                 // Unassignment will be performed starting from the
                 // best solution found so far
@@ -154,7 +156,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 #endif
             
                 // Unassign variables
-                for (int i = 0; i < unassignAmount; i += 1)
+                for (int i = 0; i < chosenVariables.size; i += 1)
                 {
                     int vi = chosenVariables[i];
                     BTSearcher.stack.representations->minimums[vi] =
@@ -202,6 +204,10 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 }
                 else
                 {
+                    #ifndef NDEBUG
+                        std::cerr << "LNS[" << iterationsDone << 
+                            "]: improving solution found.\n";
+                    #endif
                     // Backup improving solution
                     #ifdef GPU
                         Wrappers::saveBestSolution
