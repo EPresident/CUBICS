@@ -57,7 +57,20 @@ cudaDevice void IntAbs::propagate(IntConstraints* constraints, int index, IntVar
     // A     |------0--|
     // B            0----------------|
     // B'           0------|
-    int boundB {std::max(abs(minA),abs(maxA))};
+    #ifdef GPU
+        int boundB; 
+        if(abs(minA) < abs(maxA))
+        {
+           boundB = maxA;
+        }
+        else
+        {
+            boundB = minA;
+        }
+    #else
+        int boundB {std::max(abs(minA),abs(maxA))};
+    #endif
+    
     if( maxB > boundB )
     {
         variables->domains.actions.removeAnyGreaterThan(indexB,boundB);
