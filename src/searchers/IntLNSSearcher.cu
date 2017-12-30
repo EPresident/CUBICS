@@ -27,11 +27,11 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     unassignAmount = variables->count*unassignRate;
     randSeed = 1337;
     maxIterations = iterations;  
-
-    mt_rand = std::mt19937(randSeed);
     
 #ifdef GPU
     varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
+#else
+    mt_rand = std::mt19937(randSeed);
 #endif
 
     switch (fzModel->method())
@@ -98,8 +98,11 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 // Save solution
                 #ifdef GPU
                     Wrappers::saveBestSolution
-                        <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>();
+                        <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
                     cudaDeviceSynchronize();
+                    
+                    // init cuRAND state with the given seed and no offset
+                    curand_init(randSeed, threadIdx.x + blockIdx.x * blockDim.x, 0, &cuRANDstate);
                 #else
                     saveBestSolution();
                 #endif
@@ -124,8 +127,15 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 for(int i = 0; i < variables->count-1; i += 1)
                 {
                     // We want a random variable index (bar the optVariable)
-                    std::uniform_int_distribution<int> rand_dist(i, variables->count-2);
-                    int j{rand_dist(mt_rand)};
+                    #ifdef GPU
+                        int j{RandUtils::uniformRand(&cuRANDstate, i,
+                                variables->count-2)};
+                    #else
+                        std::uniform_int_distribution<int> rand_dist(i,
+                            variables->count-2);
+                        int j{rand_dist(mt_rand)};
+                    #endif
+                    
                     int tmp{shuffledVars[i]};
                     shuffledVars[i] = shuffledVars[j];
                     shuffledVars[j] = tmp;
@@ -135,7 +145,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 for(int i = 0; i < unassignAmount; i += 1)
                 {
                     chosenVariables.push_back(shuffledVars[i]);
-                    #ifndef NDEBUG
+                    #ifndef GPU
                         std::cerr << "LNS[" << iterationsDone+1 << 
                             "]: unassigning variable " << 
                             shuffledVars[i] << "\n";
@@ -149,7 +159,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 // best solution found so far
                 #ifdef GPU
                     Wrappers::restoreBestSolution
-                        <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>();
+                        <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
                     cudaDeviceSynchronize();
                 #else
                     restoreBestSolution();
@@ -204,14 +214,14 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 }
                 else
                 {
-                    #ifndef NDEBUG
+                    #ifndef GPU
                         std::cerr << "LNS[" << iterationsDone << 
                             "]: improving solution found.\n";
                     #endif
                     // Backup improving solution
                     #ifdef GPU
                         Wrappers::saveBestSolution
-                            <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>();
+                            <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
                         cudaDeviceSynchronize();
                     #else
                         saveBestSolution();
