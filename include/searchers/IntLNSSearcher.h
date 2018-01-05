@@ -52,12 +52,15 @@ struct IntLNSSearcher
     
     IntBacktrackSearcher BTSearcher;
     
+    #ifndef GPU
     // Mersenne Twister PRNG
     std::mt19937 mt_rand;
+    #endif
     
     // State for the cuRAND PRNG library (GPU)
-    curandState cuRANDstate;
-
+    #ifdef GPU
+        curandState* cuRANDstate;
+    #endif
 #ifdef GPU
     /// CUDA blocks needed to handle all the variables
     int varibalesBlockCount;
