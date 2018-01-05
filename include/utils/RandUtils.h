@@ -2,6 +2,8 @@
 
 #include <utils/GpuUtils.h>
 #include <curand_kernel.h>
+
+#ifdef GPU
 /**
  * \file Utilities for PRNG (Pseudo-Random Number Generation) 
  */
@@ -16,5 +18,16 @@ namespace RandUtils
     * \param min the minumum value allowed.
     * \param max the maximum value allowed.
     */
-    cudaDevice int uniformRand(curandState *state, int min, int max);
+    cudaDevice inline int uniformRand(curandState *state, int min, int max)
+    {
+        int idx = threadIdx.x + blockDim.x*blockIdx.x;
+
+        float randFloat = curand_uniform(state+idx);
+        randFloat *= (max - min + 0.999999); // Multiply by n° of values
+        randFloat += min; // Add offset
+        int randInt = (int)truncf(randFloat);
+        return randInt;
+    }
+
 }
+#endif

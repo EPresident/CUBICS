@@ -10,6 +10,8 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
 {
     variables = fzModel->intVariables;
     constraints = fzModel->intConstraints;
+    
+    unassignAmount = variables->count*unassignRate;
 
     BTSearcher.initialize(fzModel);
     chosenVariables.initialize(unassignAmount);
@@ -24,7 +26,7 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     unassignmentRate = unassignRate;
     iterationsDone = 0;
     LNSState = IntLNSSearcher::Initialized;
-    unassignAmount = variables->count*unassignRate;
+    
     randSeed = 1337;
     maxIterations = iterations;  
     
@@ -102,7 +104,8 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                     cudaDeviceSynchronize();
                     
                     // init cuRAND state with the given seed and no offset
-                    curand_init(randSeed, threadIdx.x + blockIdx.x * blockDim.x, 0, &cuRANDstate);
+                    MemUtils::malloc(&cuRANDstate);
+                    curand_init(randSeed, threadIdx.x + blockIdx.x * blockDim.x, 0, cuRANDstate);
                 #else
                     saveBestSolution();
                 #endif
@@ -128,7 +131,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
                 {
                     // We want a random variable index (bar the optVariable)
                     #ifdef GPU
-                        int j{RandUtils::uniformRand(&cuRANDstate, i,
+                        int j {RandUtils::uniformRand(cuRANDstate, i,
                                 variables->count-2)};
                     #else
                         std::uniform_int_distribution<int> rand_dist(i,
