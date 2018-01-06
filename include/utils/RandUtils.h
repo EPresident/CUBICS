@@ -1,9 +1,10 @@
 #pragma once
 
+#ifdef GPU
 #include <utils/GpuUtils.h>
 #include <curand_kernel.h>
 
-#ifdef GPU
+
 /**
  * \file Utilities for PRNG (Pseudo-Random Number Generation) 
  */
