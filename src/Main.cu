@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <chrono>
 
 #include <utils/Utils.h>
 #include <flatzinc/flatzinc.h>
@@ -33,6 +34,10 @@ int main(int argc, char * argv[])
     bool* satisfiableModel;
     MemUtils::malloc(&satisfiableModel); // Must be readable by GPU
     *satisfiableModel = true;
+    
+    // FIXME Max elapsed time in ms
+    long timeout = 120*1000;
+    std::chrono::steady_clock::time_point startTime {std::chrono::steady_clock::now()};
 
     // Make sure the model is satisfiable, by propagating the constaints. (GPU/CPU)
 #ifdef GPU
@@ -46,7 +51,10 @@ int main(int argc, char * argv[])
     //*satisfiableModel = backtrackSearcher->propagator.propagateConstraints();
     *satisfiableModel = LNSSearcher->BTSearcher.propagator.propagateConstraints();
 #endif
-
+    
+    long elapsedTime { std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - startTime).count() };
+    
     if (*satisfiableModel)
     {
         bool* solutionFound;
@@ -71,17 +79,28 @@ int main(int argc, char * argv[])
         * That means finding one/n/all solutions, depending on the user
         * provided arguments.
         */
-        while (*solutionFound and (solutionCount < opts.solutionsCount or onlyBestSolution))
+        while (*solutionFound and 
+               (solutionCount < opts.solutionsCount or onlyBestSolution) and 
+               elapsedTime < timeout
+              )
         {
             // Get next solution (GPU/CPU)
+            elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
+                            std::chrono::steady_clock::now() - startTime).count();
+            long searcherTimeout {timeout - elapsedTime};
 #ifdef GPU
             //Wrappers::getNextSolution<<<1, 1>>>(backtrackSearcher, solutionFound);
-            Wrappers::getNextSolution<<<1, 1>>>(LNSSearcher, solutionFound);
+            Wrappers::getNextSolution<<<1, 1>>>(LNSSearcher, solutionFound, searcherTimeout);
             LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
 #else
             //*solutionFound = backtrackSearcher->getNextSolution();
-            *solutionFound = LNSSearcher->getNextSolution();
+            *solutionFound = LNSSearcher->getNextSolution(searcherTimeout);
 #endif
+            
+            // Measure time
+            elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
+                            std::chrono::steady_clock::now() - startTime).count();
+            
             if (*solutionFound)
             {
                 // Print/store the found solution.
@@ -122,6 +141,8 @@ int main(int argc, char * argv[])
     {
         cout << "=====UNSATISFIABLE=====" << endl;
     }
+
+    cout << "Elapsed time: " << elapsedTime << " ms" << endl;
 
     return EXIT_SUCCESS;
 }

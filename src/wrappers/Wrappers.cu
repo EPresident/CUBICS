@@ -26,9 +26,9 @@ cudaGlobal void Wrappers::getNextSolution(IntBacktrackSearcher* backtrackSearche
 //----------------------
 // Integer LNS searcher
 //----------------------
-cudaGlobal void Wrappers::getNextSolution(IntLNSSearcher* LNSSearcher, bool* solutionFound)
+cudaGlobal void Wrappers::getNextSolution(IntLNSSearcher* LNSSearcher, bool* solutionFound, long timeout)
 {
-    *solutionFound = LNSSearcher->getNextSolution();
+    *solutionFound = LNSSearcher->getNextSolution(timeout);
 }
 
 cudaGlobal void Wrappers::saveBestSolution(IntLNSSearcher* LNSSearcher)

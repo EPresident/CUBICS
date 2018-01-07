@@ -81,12 +81,18 @@ void IntLNSSearcher::deinitialize()
 * Find the next solution, backtracking when needed.
 * \return true if a solution is found, false otherwise.
 */
-cudaDevice bool IntLNSSearcher::getNextSolution()
+cudaDevice bool IntLNSSearcher::getNextSolution(long timeout)
 {
     bool solutionFound = false;
 
-    while (not solutionFound && iterationsDone < maxIterations)
+    while (not solutionFound 
+            && iterationsDone < maxIterations
+            && timeout > 0
+          )
     {
+        // Setup timer to compute this iteration's duration
+        timer.setStartTime();
+        
         switch (LNSState)
         {
             case Initialized:
@@ -233,6 +239,10 @@ cudaDevice bool IntLNSSearcher::getNextSolution()
             }
                 break;
         }
+        
+        // Compute elapsed time and subtract it from timeout
+        timeout -= timer.getElapsedTime();
+        
     }
 
     return solutionFound;

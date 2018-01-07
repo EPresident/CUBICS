@@ -2,6 +2,7 @@
 
 #include <searchers/IntBacktrackSearcher.h>
 #include <random>
+#include <utils/TimerUtils.h>
 
 /**
 * Struct used to perform Large Neighborhood Search.
@@ -36,6 +37,11 @@ struct IntLNSSearcher
     int iterationsDone;
     /// LNS iterations to do
     int maxIterations;
+    /// Timeout (in milliseconds)
+    //long timeout;
+    
+    /// Device-Host timer
+    TimerUtils timer;
     
     /// Indicates the variables to unassign.
     Vector<int> chosenVariables;
@@ -90,7 +96,7 @@ struct IntLNSSearcher
     * Find the next solution, unassigning variables when needed.
     * \return true if a solution is found, false otherwise.
     */
-    cudaDevice bool getNextSolution();
+    cudaDevice bool getNextSolution(long timeout);
     
     /**
     * Back up the initial domains by copying the current domain 
