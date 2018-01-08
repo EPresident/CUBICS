@@ -52,9 +52,9 @@ int main(int argc, char * argv[])
     *satisfiableModel = LNSSearcher->BTSearcher.propagator.propagateConstraints();
 #endif
     
-    long elapsedTime { std::chrono::duration_cast<std::chrono::microseconds>(
+    long elapsedTime { std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - startTime).count() };
-    
+
     if (*satisfiableModel)
     {
         bool* solutionFound;
@@ -98,8 +98,9 @@ int main(int argc, char * argv[])
 #endif
             
             // Measure time
-            elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
+            elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(
                             std::chrono::steady_clock::now() - startTime).count();
+            //cout << "Solution: " << elapsedTime << endl;
             
             if (*solutionFound)
             {
