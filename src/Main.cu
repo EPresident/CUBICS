@@ -85,7 +85,7 @@ int main(int argc, char * argv[])
               )
         {
             // Get next solution (GPU/CPU)
-            elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
+            elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(
                             std::chrono::steady_clock::now() - startTime).count();
             long searcherTimeout {timeout - elapsedTime};
 #ifdef GPU
