@@ -18,6 +18,8 @@ void Options::initialize()
     solutionsCount = 1;
     inputFile = nullptr;
     opt = new AnyOption();
+    iterations = 100;
+    timeout = 300 * 1000;
 }
 
 /// Parse the arguments given from the command line.
@@ -30,10 +32,14 @@ void Options::parseOptions(int argc, char * argv[])
     opt->addUsage(" -h  --help         Prints this help");
     opt->addUsage(" -n [NUMBER]        Print at most NUMBER solution");
     opt->addUsage(" -a                 Print all the solutions");
+    opt->addUsage(" -t [NUMBER]        Timeout after NUMBER milliseconds");
+    opt->addUsage(" -i [NUMBER]        Do NUMBER LNS iterations");
     opt->addUsage(" --version          Print solver version");
 
     opt->setFlag('a');
     opt->setOption('n');
+    opt->setOption('t');
+    opt->setOption('i');
     opt->setFlag("help", 'h');
     opt->setFlag("version");
 
@@ -65,6 +71,16 @@ void Options::parseOptions(int argc, char * argv[])
     {
         cout << name << " " << version << endl ;
         exit(EXIT_SUCCESS);
+    }
+    
+    if (opt->getValue('t') != nullptr)
+    {
+        timeout = std::stoul(string(opt->getValue('t')));
+    }
+    
+    if (opt->getValue('i') != nullptr)
+    {
+        iterations = std::stoul(string(opt->getValue('i')));
     }
 
     char* arg  = opt->getArgv(0);

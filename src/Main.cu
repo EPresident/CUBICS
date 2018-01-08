@@ -35,8 +35,9 @@ int main(int argc, char * argv[])
     MemUtils::malloc(&satisfiableModel); // Must be readable by GPU
     *satisfiableModel = true;
     
-    // FIXME Max elapsed time in ms
-    long timeout = 12000*1000;
+    // Max elapsed time in ms
+    long timeout = opts.timeout;
+    cout << "Timeout: " << timeout << endl ;
     std::chrono::steady_clock::time_point startTime {std::chrono::steady_clock::now()};
     
     // Make sure the model is satisfiable, by propagating the constaints. (GPU/CPU)
@@ -143,6 +144,8 @@ int main(int argc, char * argv[])
         cout << "=====UNSATISFIABLE=====" << endl;
     }
 
+    elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::steady_clock::now() - startTime).count();
     cout << "Elapsed time: " << elapsedTime << " ms" << endl;
 
     return EXIT_SUCCESS;

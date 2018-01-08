@@ -9,6 +9,8 @@ struct Options
     const char* name;
     const char* version;
     unsigned int solutionsCount;
+    long timeout;
+    unsigned int iterations;
     char* inputFile;
     AnyOption *opt;
 
