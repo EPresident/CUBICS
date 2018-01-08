@@ -16,6 +16,7 @@ struct TimerUtils
     #ifdef GPU
         long long startTime;
         //int idx = threadIdx.x+blockDim.x*blockIdx.x;
+        /// Device (GPU) clock speed
         int peak_clk{-1};
         bool initialized {false};
     #else
@@ -28,6 +29,7 @@ struct TimerUtils
         {
             initialized = true;
             const int DEVICE = 0; // this might need changing in a multi-device setting
+            // Get clock speed
             cudaError_t err = cudaDeviceGetAttribute(&peak_clk,
                 cudaDevAttrClockRate, DEVICE);
             if (err != cudaSuccess) 
@@ -38,7 +40,7 @@ struct TimerUtils
     #endif
     
     /**
-     * Set the current time as thestarting time for the measurement,
+     * Set the current time as the starting time for the measurement,
      * which will be subtracted from the elapsed time.
     */
     cudaDevice inline void setStartTime()
