@@ -21,6 +21,9 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     {
         domainsBackup[i].initialize(2);
     }
+    #ifdef GPU
+        timer.initialize();
+    #endif
 
     LNSState = Initialized;
     unassignmentRate = unassignRate;

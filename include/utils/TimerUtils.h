@@ -14,11 +14,28 @@
 struct TimerUtils
 {
     #ifdef GPU
-        cudaEvent_t startEvent, stopEvent;
+        long long startTime;
+        //int idx = threadIdx.x+blockDim.x*blockIdx.x;
+        int peak_clk{-1};
+        bool initialized {false};
     #else
         std::chrono::steady_clock::time_point startTime;
     #endif
-    bool initialized {false};
+    bool started {false};
+    
+    #ifdef GPU
+        cudaHostDevice inline void initialize()
+        {
+            initialized = true;
+            const int DEVICE = 0; // this might need changing in a multi-device setting
+            cudaError_t err = cudaDeviceGetAttribute(&peak_clk,
+                cudaDevAttrClockRate, DEVICE);
+            if (err != cudaSuccess) 
+            {
+                LogUtils::error("TimeUtils"," can't get device clock!");
+            }
+        }
+    #endif
     
     /**
      * Set the current time as thestarting time for the measurement,
@@ -26,11 +43,12 @@ struct TimerUtils
     */
     cudaDevice inline void setStartTime()
     {
-        initialized = true;
         #ifdef GPU
-            cudaEventCreate(&startEvent);
-            cudaEventCreate(&stopEvent);
-            cudaEventRecord(start);
+            assert(initialized);
+        #endif
+        started = true;
+        #ifdef GPU
+            startTime = clock64();
         #else
             startTime = std::chrono::steady_clock::now();
         #endif
@@ -44,18 +62,15 @@ struct TimerUtils
     cudaDevice inline long getElapsedTime()
     {
         // Make sure \a setStartTime() has been called first!
-        assert(initialized);
+        assert(started);
         
         long elapsedTime;
         #ifdef GPU
-            cudaEventRecord(stopEvent);
-            cudaEventSynchronize(stopEvent);
-            float milliseconds = 0;
-            cudaEventElapsedTime(&milliseconds, start, stop);
-            elapsedTime = static_cast<long>(milliseconds);
+            long long diff(clock64()-startTime);
+            elapsedTime = static_cast<long>(diff/(float)peak_clk);
         #else
             elapsedTime = 
-                std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::steady_clock::now() - startTime
                 ).count();
         #endif

@@ -36,9 +36,9 @@ int main(int argc, char * argv[])
     *satisfiableModel = true;
     
     // FIXME Max elapsed time in ms
-    long timeout = 120*1000;
+    long timeout = 12000*1000;
     std::chrono::steady_clock::time_point startTime {std::chrono::steady_clock::now()};
-
+    
     // Make sure the model is satisfiable, by propagating the constaints. (GPU/CPU)
 #ifdef GPU
     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSetLimit(cudaLimitMallocHeapSize, HEAP_SIZE));
