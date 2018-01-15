@@ -6,7 +6,8 @@ struct IntValuesChooser
 {
     enum Type
     {
-        InOrder
+        InOrder,
+        Random
     };
 
     int type;

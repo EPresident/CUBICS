@@ -19,6 +19,9 @@ cudaDevice bool IntValuesChooser::getFirstValue(int variable, int* firstValue)
     {
         case InOrder:
             return IntInOrderValuesChooser::getFirstValue(this, variable, firstValue);
+            break;
+        case Random:
+            return IntRandomValuesChooser::getFirstValue(this, variable, firstValue);
         default:
             LogUtils::error(__PRETTY_FUNCTION__, "Invalid value chooser type");
             return false;
@@ -35,6 +38,9 @@ cudaDevice bool IntValuesChooser::getNextValue(int variable, int currentValue, i
     {
         case InOrder:
             return IntInOrderValuesChooser::getNextValue(this, variable, currentValue, nextValue);
+            break;
+        case Random:
+            return IntRandomValuesChooser::getNextValue(this, variable, currentValue, nextValue);
         default:
             LogUtils::error(__PRETTY_FUNCTION__, "Invalid value chooser type");
             return false;
