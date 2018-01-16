@@ -22,5 +22,6 @@ cudaDevice bool IntRandomValuesChooser::getNextValue(IntValuesChooser* valuesCho
             intDomRepr->maximums[variable]);
         --attempts;
     }while(attempts > 0 && !intDomRepr->contain(variable,val));
+    *nextValue = val;
     return attempts > 0;
 }
