@@ -2,10 +2,12 @@
 
 #include <utils/Utils.h>
 #include <choosers/IntInOrderValuesChooser.h>
+#include <choosers/IntRandomValuesChooser.h>
 
-void IntValuesChooser::initialzie(int type, IntVariables* variables)
+void IntValuesChooser::initialzie(int type, IntVariables* variables, long seed)
 {
     this->type = type;
+    randSeed = seed;
     this->variables = variables;
 }
 
@@ -19,7 +21,6 @@ cudaDevice bool IntValuesChooser::getFirstValue(int variable, int* firstValue)
     {
         case InOrder:
             return IntInOrderValuesChooser::getFirstValue(this, variable, firstValue);
-            break;
         case Random:
             return IntRandomValuesChooser::getFirstValue(this, variable, firstValue);
         default:
@@ -38,7 +39,6 @@ cudaDevice bool IntValuesChooser::getNextValue(int variable, int currentValue, i
     {
         case InOrder:
             return IntInOrderValuesChooser::getNextValue(this, variable, currentValue, nextValue);
-            break;
         case Random:
             return IntRandomValuesChooser::getNextValue(this, variable, currentValue, nextValue);
         default:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <choosers/IntValuesChooser.h>
+#include <utils/RandUtils.h>
 
 namespace IntRandomValuesChooser
 {

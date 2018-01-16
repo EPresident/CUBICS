@@ -2,14 +2,25 @@
 
 cudaDevice bool IntRandomValuesChooser::getFirstValue(IntValuesChooser* valuesChooser, int variable, int* firstValue)
 {
-    // init cuRAND state with the given seed and no offset
-    MemUtils::malloc(&cuRANDstate);
-    curand_init(randSeed, threadIdx.x + blockIdx.x * blockDim.x, 0, cuRANDstate);
-    *firstValue = valuesChooser->variables->domains.representations.minimums[variable];
-    return true;
+    #ifdef GPU
+        // init cuRAND state with the given seed and no offset
+        MemUtils::malloc(&valuesChooser->cuRANDstate);
+        curand_init(valuesChooser->randSeed, threadIdx.x + blockIdx.x * blockDim.x,
+            0, valuesChooser->cuRANDstate);
+    #endif
+    return getNextValue(valuesChooser, variable, 0, firstValue);
 }
 
 cudaDevice bool IntRandomValuesChooser::getNextValue(IntValuesChooser* valuesChooser, int variable, int currentValue, int* nextValue)
 {
-    return valuesChooser->variables->domains.representations.getNextValue(variable, currentValue, nextValue);
+    IntDomainsRepresentations* intDomRepr  = &valuesChooser->variables->domains.representations;
+    
+    int val;
+    unsigned int attempts = 1000000000;
+    do{
+        val = RandUtils::uniformRand(valuesChooser->cuRANDstate, intDomRepr->minimums[variable],
+            intDomRepr->maximums[variable]);
+        --attempts;
+    }while(attempts > 0 && !intDomRepr->contain(variable,val));
+    return attempts > 0;
 }

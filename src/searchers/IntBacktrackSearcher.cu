@@ -13,7 +13,7 @@ void IntBacktrackSearcher::initialize(FlatZinc::FlatZincModel* fzModel)
     stack.initialize(&variables->domains.representations);
 
     variablesChooser.initialzie(IntVariablesChooser::InOrder, variables, &chosenVariables);
-    valuesChooser.initialzie(IntValuesChooser::InOrder, variables);
+    valuesChooser.initialzie(IntValuesChooser::Random, variables);
 
     propagator.initialize(variables, constraints);
 

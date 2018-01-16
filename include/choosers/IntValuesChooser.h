@@ -11,9 +11,17 @@ struct IntValuesChooser
     };
 
     int type;
+    /// Seed for the PRNG
+    long randSeed;
+    const static long DEFAULT_SEED = 543219876;
+    
     IntVariables* variables;
+    #ifdef GPU
+        /// State for the cuRAND PRNG library (GPU)
+        curandState* cuRANDstate;
+    #endif
 
-    void initialzie(int type, IntVariables* variables);
+    void initialzie(int type, IntVariables* variables, long seed = DEFAULT_SEED);
 
     /**
     * Get the first value (following the chooser's criteria) for a variable.
