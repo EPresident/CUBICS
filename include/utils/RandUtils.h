@@ -3,6 +3,7 @@
 #ifdef GPU
 #include <utils/GpuUtils.h>
 #include <curand_kernel.h>
+#include <cassert>
 
 
 /**
@@ -21,6 +22,9 @@ namespace RandUtils
     */
     cudaDevice inline int uniformRand(curandState *state, int min, int max)
     {
+        // Want to be able to choose from at least 2 values
+        assert(max-min > 1);
+        
         int idx = threadIdx.x + blockDim.x*blockIdx.x;
 
         float randFloat = curand_uniform(state+idx);
