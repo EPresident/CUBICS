@@ -120,7 +120,7 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                 }
                 
                 //BTSearcher.deinitialize(); // searcher no longer needed
-                SNBSState = DoUnassignment;
+                SNBSState = NewNeighborhood;
                 // Save solution
                 #ifdef GPU
                     Wrappers::saveBestSolution
@@ -136,10 +136,8 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
             }
                 break;
 
-            case DoUnassignment:
+            case NewNeighborhood:
             {    
-                IntDomainsRepresentations* intDomRepr  = 
-                    &variables->domains.representations;
                 if(unassignAmount < 1)
                 {
                     return false;
@@ -193,12 +191,7 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                 for (int i = 0; i < chosenVariables.size; i += 1)
                 {
                     int vi = chosenVariables[i];
-                    intDomRepr->minimums[vi] = domainsBackup[vi].minimums[0];
-                    intDomRepr->maximums[vi] = domainsBackup[vi].maximums[0];
-                    intDomRepr->offsets[vi] = domainsBackup[vi].offsets[0];
-                    ++intDomRepr->versions[i];
-                    intDomRepr->bitvectors[vi].
-                        copy(&domainsBackup[vi].bitvectors[0]);
+                    unassignVariable(vi);
                 }
             
                 // Update SNBS state
@@ -248,12 +241,7 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                 // Undo assignment
                 // FIXME this is done a second time when i backtrack and then reassign
                 int currentVar = chosenVariables[neighVarsAssigned];
-                IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
-                intDomRepr->minimums[currentVar] = domainsBackup[currentVar].minimums[0];
-                intDomRepr->maximums[currentVar] = domainsBackup[currentVar].maximums[0];
-                intDomRepr->offsets[currentVar] = domainsBackup[currentVar].offsets[0];
-                intDomRepr->versions[currentVar] = domainsBackup[currentVar].versions[0];
-                intDomRepr->bitvectors[currentVar].copy(&domainsBackup[currentVar].bitvectors[0]);
+                unassignVariable(currentVar);
                 
                 // Assign next value
                 if (valuesChooser.getNextValue(currentVar, chosenValues[neighVarsAssigned], &chosenValue))
@@ -282,7 +270,7 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                     else
                     {
                         // Done exploring the neighborhood
-                        SNBSState = DoUnassignment;
+                        SNBSState = NewNeighborhood;
                         ++iterationsDone;
                     }
                 }
@@ -317,12 +305,7 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
             case FreeOptVar:
             {
                 // Free optimization variable
-                IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
-                intDomRepr->minimums[optVariable] = domainsBackup[optVariable].minimums[0];
-                intDomRepr->maximums[optVariable] = domainsBackup[optVariable].maximums[0];
-                intDomRepr->offsets[optVariable] = domainsBackup[optVariable].offsets[0];
-                intDomRepr->versions[optVariable] = domainsBackup[optVariable].versions[0];
-                intDomRepr->bitvectors[optVariable].copy(&domainsBackup[optVariable].bitvectors[0]);
+                unassignVariable(optVariable);
                 
                 SNBSState = NextCandidate;
             }
@@ -417,4 +400,21 @@ cudaDevice void IntSNBSearcher::restoreBestSolution()
         intDomRepr->versions[vi] = domainsBackup[vi].versions.back();
         intDomRepr->bitvectors[vi].copy(&domainsBackup[vi].bitvectors.back());
     }
+}
+
+/**
+ * Unassign the given variable, restoring its domain representation
+ * to the way it was before the search began.
+ * 
+ * WARNING: does not restore the version.
+ * \see IntDomainsRepresentations
+ */
+cudaDevice void IntSNBSearcher::unassignVariable(int variable)
+{
+    IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
+    intDomRepr->minimums[variable] = domainsBackup[variable].minimums[0];
+    intDomRepr->maximums[variable] = domainsBackup[variable].maximums[0];
+    intDomRepr->offsets[variable] = domainsBackup[variable].offsets[0];
+    intDomRepr->versions[variable] += 1;
+    intDomRepr->bitvectors[variable].copy(&domainsBackup[variable].bitvectors[0]);
 }

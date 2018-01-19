@@ -22,7 +22,7 @@ struct IntSNBSearcher
     enum States
     {        
         Initialized,
-        DoUnassignment,
+        NewNeighborhood,
         Generate,
         Test,
         NextCandidate,
@@ -134,4 +134,12 @@ struct IntSNBSearcher
     * domains representation.
     */
     cudaDevice void restoreBestSolution();
+    /**
+     * Unassign the given variable, restoring its domain representation
+     * to the way it was before the search began.
+     * 
+     * WARNING: does not restore the version.
+     * \see IntDomainsRepresentations
+     */
+    cudaDevice void unassignVariable(int variable);
 };
