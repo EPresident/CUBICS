@@ -25,7 +25,8 @@ struct IntSNBSearcher
         DoUnassignment,
         Generate,
         Test,
-        NextCandidate
+        NextCandidate,
+        FreeOptVar
     };
 
     IntBacktrackSearcher BTSearcher;

@@ -106,6 +106,19 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                 
                 // Find first solution (there has to be at least one)
                 solutionFound = BTSearcher.getNextSolution();
+                // Shrink optimization bounds (i.e. ask the next solution to be better)
+                if (solutionFound)
+                {
+                    if (searchType == Maximization)
+                    {
+                        constraints->parameters[optConstraint][0] = variables->domains.getMin(optVariable) + 1;
+                    }
+                    else if (searchType == Minimization)
+                    {
+                        constraints->parameters[optConstraint][0] = variables->domains.getMin(optVariable) - 1;
+                    }
+                }
+                
                 //BTSearcher.deinitialize(); // searcher no longer needed
                 SNBSState = DoUnassignment;
                 // Save solution
@@ -189,7 +202,6 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                 }
             
                 // Update SNBS state
-                ++iterationsDone;
                 chosenValues.clear();
                 neighVarsAssigned = 0;
                 SNBSState = Generate;
@@ -219,17 +231,14 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                     chosenValues.push_back(variables->domains.getMin(currentVar));
                     
                 }
+                
+                ++neighVarsAssigned;
+                
                 if(neighVarsAssigned == unassignAmount)
                 {
                     // First candidate has been generated
                     SNBSState = Test;
-                }
-                else
-                {
-                    // More variables to assign
-                    ++neighVarsAssigned;
-                }
-                
+                } // else more variables to assign
 
             }
             break;
@@ -237,13 +246,14 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
             {
                 // Get the next candidate solution
                 // Undo assignment
+                // FIXME this is done a second time when i backtrack and then reassign
                 int currentVar = chosenVariables[neighVarsAssigned];
                 IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
-                intDomRepr->minimums[currentVar] = domainsBackup[currentVar].minimums.back();
-                intDomRepr->maximums[currentVar] = domainsBackup[currentVar].maximums.back();
-                intDomRepr->offsets[currentVar] = domainsBackup[currentVar].offsets.back();
-                intDomRepr->versions[currentVar] = domainsBackup[currentVar].versions.back();
-                intDomRepr->bitvectors[currentVar].copy(&domainsBackup[currentVar].bitvectors.back());
+                intDomRepr->minimums[currentVar] = domainsBackup[currentVar].minimums[0];
+                intDomRepr->maximums[currentVar] = domainsBackup[currentVar].maximums[0];
+                intDomRepr->offsets[currentVar] = domainsBackup[currentVar].offsets[0];
+                intDomRepr->versions[currentVar] = domainsBackup[currentVar].versions[0];
+                intDomRepr->bitvectors[currentVar].copy(&domainsBackup[currentVar].bitvectors[0]);
                 
                 // Assign next value
                 if (valuesChooser.getNextValue(currentVar, chosenValues[neighVarsAssigned], &chosenValue))
@@ -252,16 +262,13 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                     chosenValues[neighVarsAssigned] = chosenValue;
                     variables->domains.fixValue(currentVar, chosenValue);
                     
+                    ++neighVarsAssigned;
+                    
                     if(neighVarsAssigned == unassignAmount)
                     {
                         // Next candidate has been generated
                         SNBSState = Test;
-                    }
-                    else
-                    {
-                        // More variables to re-assign
-                        ++neighVarsAssigned;
-                    }
+                    }// Else more variables to re-assign
                 }
                 else
                 {
@@ -275,7 +282,8 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                     else
                     {
                         // Done exploring the neighborhood
-                        return false;
+                        SNBSState = DoUnassignment;
+                        ++iterationsDone;
                     }
                 }
             }
@@ -285,11 +293,12 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                 // Check if the generated solution is good
                 // Also need to compute the cost function!
                 // (but it should be a singleton after propagation, so...)
-                assert(variables->domains.isSingleton(chosenVariables.back()));
                 bool noEmptyDomains = propagator.propagateConstraints();
-
+                
                 if (noEmptyDomains)
                 {
+                    assert(variables->domains.isSingleton(chosenVariables.back()));
+                    solutionFound=true;
                     // Backup improving solution
                     #ifdef GPU
                         Wrappers::saveBestSolution
@@ -299,11 +308,23 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                         saveBestSolution();
                     #endif
                 }
-                else
-                {
-                    // A domain has been emptied, try another value.
-                    SNBSState = NextCandidate;
-                }
+                    
+                // Try another value.
+                --neighVarsAssigned;
+                SNBSState = FreeOptVar;
+            }
+            break;
+            case FreeOptVar:
+            {
+                // Free optimization variable
+                IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
+                intDomRepr->minimums[optVariable] = domainsBackup[optVariable].minimums[0];
+                intDomRepr->maximums[optVariable] = domainsBackup[optVariable].maximums[0];
+                intDomRepr->offsets[optVariable] = domainsBackup[optVariable].offsets[0];
+                intDomRepr->versions[optVariable] = domainsBackup[optVariable].versions[0];
+                intDomRepr->bitvectors[optVariable].copy(&domainsBackup[optVariable].bitvectors[0]);
+                
+                SNBSState = NextCandidate;
             }
             break;
         }
@@ -313,8 +334,8 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
         
     }
     
-    // Make sure the next solution is better (for optimization problems)
-    if (solutionFound and (searchType == Maximization or searchType == Minimization))
+    // Make sure the next solution is better
+    if (solutionFound)
     {
         if (searchType == Maximization)
         {
