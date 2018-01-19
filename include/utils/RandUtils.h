@@ -22,8 +22,12 @@ namespace RandUtils
     */
     cudaDevice inline int uniformRand(curandState *state, int min, int max)
     {
-        // Want to be able to choose from at least 2 values
-        assert(max-min > 1);
+        assert(min <= max);
+        // Want to be able to choose from at least 1 values
+        if(max == min)
+        {
+            return min;
+        }
         
         int idx = threadIdx.x + blockDim.x*blockIdx.x;
 
