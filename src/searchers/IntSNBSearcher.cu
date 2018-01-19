@@ -238,41 +238,44 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
             case NextCandidate:
             {
                 // Get the next candidate solution
-                // Undo assignment
-                // FIXME this is done a second time when i backtrack and then reassign
+                // Undo assignments until a new value can be set
+                --neighVarsAssigned;
                 int currentVar = chosenVariables[neighVarsAssigned];
                 unassignVariable(currentVar);
                 
-                // Assign next value
-                if (valuesChooser.getNextValue(currentVar, chosenValues[neighVarsAssigned], &chosenValue))
+                if(not valuesChooser.getNextValue(currentVar, 
+                        chosenValues[neighVarsAssigned], &chosenValue) )
                 {
-                    // There's another value
-                    chosenValues[neighVarsAssigned] = chosenValue;
-                    variables->domains.fixValue(currentVar, chosenValue);
-                    
-                    ++neighVarsAssigned;
-                    
-                    if(neighVarsAssigned == unassignAmount)
+                    do
                     {
-                        // Next candidate has been generated
-                        SNBSState = Test;
-                    }// Else more variables to re-assign
+                        currentVar = chosenVariables[--neighVarsAssigned];
+                        unassignVariable(currentVar);
+                    }while( neighVarsAssigned-1 >= 0 and
+                            not valuesChooser.getNextValue(currentVar, 
+                            chosenValues[neighVarsAssigned], &chosenValue) 
+                          );
+                }
+                
+                if(neighVarsAssigned >= 0)
+                {
+                    chosenValues[neighVarsAssigned] = chosenValue;
+                    
+                    // Start assigning next value(s)
+                    variables->domains.fixValue(chosenVariables[neighVarsAssigned], chosenValue);
+                    while(++neighVarsAssigned < unassignAmount)
+                    {
+                        variables->domains.fixValue(chosenVariables[neighVarsAssigned], 
+                            chosenValues[neighVarsAssigned]);
+                    }
+                    
+                    // Next candidate has been generated
+                    SNBSState = Test;
                 }
                 else
                 {
-                    // All values have been used
-                    if(neighVarsAssigned > 0)
-                    {
-                        // Maybe previous variables have another value
-                        --neighVarsAssigned;
-                        chosenValues.pop_back();
-                    }
-                    else
-                    {
-                        // Done exploring the neighborhood
-                        SNBSState = NewNeighborhood;
-                        ++iterationsDone;
-                    }
+                    // Done exploring the neighborhood
+                    SNBSState = NewNeighborhood;
+                    ++iterationsDone;
                 }
             }
             break;
@@ -298,7 +301,6 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                 }
                     
                 // Try another value.
-                --neighVarsAssigned;
                 SNBSState = FreeOptVar;
             }
             break;
