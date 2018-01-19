@@ -3,6 +3,7 @@
 
 #include <searchers/IntBacktrackSearcher.h>
 #include <searchers/IntLNSSearcher.h>
+#include <searchers/IntSNBSearcher.h>
 #include <propagators/IntConstraintsPropagator.h>
 
 namespace Wrappers
@@ -19,6 +20,11 @@ namespace Wrappers
     cudaGlobal void getNextSolution(IntLNSSearcher* LNSSearcher, bool* solutionFound, long timeout);
     cudaGlobal void saveBestSolution(IntLNSSearcher* LNSSearcher);
     cudaGlobal void restoreBestSolution(IntLNSSearcher* LNSSearcher);
+    
+    //Integer SNB searcher
+    cudaGlobal void getNextSolution(IntSNBSearcher* SNBSearcher, bool* solutionFound, long timeout);
+    cudaGlobal void saveBestSolution(IntSNBSearcher* SNBSearcher);
+    cudaGlobal void restoreBestSolution(IntSNBSearcher* SNBSearcher);
     
     //Integer constraints propagator
     cudaGlobal void propagateConstraints(IntConstraintsPropagator* propagator, bool* satisfiableModel);

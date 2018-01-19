@@ -41,6 +41,24 @@ cudaGlobal void Wrappers::restoreBestSolution(IntLNSSearcher* LNSSearcher)
     LNSSearcher->restoreBestSolution();
 }
 
+//----------------------
+// Integer SNB searcher
+//----------------------
+cudaGlobal void Wrappers::getNextSolution(IntSNBSearcher* SNBSearcher, bool* solutionFound, long timeout)
+{
+    *solutionFound = SNBSearcher->getNextSolution(timeout);
+}
+
+cudaGlobal void Wrappers::saveBestSolution(IntSNBSearcher* SNBSearcher)
+{
+    SNBSearcher->saveBestSolution();
+}
+
+cudaGlobal void Wrappers::restoreBestSolution(IntSNBSearcher* SNBSearcher)
+{
+    SNBSearcher->restoreBestSolution();
+}
+
 //Integer constraints propagator
 cudaGlobal void Wrappers::propagateConstraints(IntConstraintsPropagator* propagator, bool* satisfiableModel)
 {
