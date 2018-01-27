@@ -63,6 +63,9 @@ cudaDevice void IntConstraints::propagate(int index, IntVariables* variables)
         case IntAbs:
             IntAbs::propagate(this, index, variables);
             break;
+        case IntTimes:
+            IntTimes::propagate(this, index, variables);
+            break;
         default:
             LogUtils::error(__PRETTY_FUNCTION__, "Invalid constraint type");
     }
@@ -87,6 +90,8 @@ cudaDevice bool IntConstraints::satisfied(int index, IntVariables* variables)
             return IntLinEq::satisfied(this, index, variables);
         case IntAbs:
             return IntAbs::satisfied(this, index, variables);
+        case IntTimes:
+            return IntTimes::satisfied(this, index, variables);
         default:
             LogUtils::error(__PRETTY_FUNCTION__, "Invalid constraint type");
             return false;

@@ -240,12 +240,26 @@ namespace FlatZinc {
     void p_int_minus(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
       std::cerr << "int_minus("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<")::"<<(*ann)<<"\n";
-    }
+    }*/
 
-    void p_int_times(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
-      std::cerr << "int_times("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
-        <<")::"<<(*ann)<<"\n";
-    }
+    void p_int_times(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) 
+    {
+        #ifndef NDEBUG
+        std::cerr << "int_times("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
+            <<")::"<<(*ann)<<"\n";
+        #endif
+        s.intConstraints->push(IntConstraints::Type::IntTimes);
+        int constraint = s.intConstraints->count - 1;
+
+        int variable;
+        for(int i = 0; i < 3; i += 1)
+        {
+            variable = ce[i]->getIntVar();
+
+            s.intVariables->constraints[variable].push_back(constraint);
+            s.intConstraints->variables[constraint].push_back(variable);
+        }
+    }/*
     void p_int_div(FlatZincModel& s, const ConExpr& ce, AST::Node* ann) {
       std::cerr << "int_div("<<(*ce[0])<<","<<(*ce[1])<<","<<(*ce[2])
         <<")::"<<(*ann)<<"\n";
@@ -485,9 +499,9 @@ namespace FlatZinc {
         registry().add("int_lin_gt", &p_int_lin_gt);
         registry().add("int_lin_gt_reif", &p_int_lin_gt_reif);
         registry().add("int_plus", &p_int_plus);
-        registry().add("int_minus", &p_int_minus);
+        registry().add("int_minus", &p_int_minus);*/
         registry().add("int_times", &p_int_times);
-        registry().add("int_div", &p_int_div);
+        /*registry().add("int_div", &p_int_div);
         registry().add("int_mod", &p_int_mod);
         registry().add("int_min", &p_int_min);
         registry().add("int_max", &p_int_max);*/
