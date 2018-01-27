@@ -106,18 +106,6 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                 
                 // Find first solution (there has to be at least one)
                 solutionFound = BTSearcher.getNextSolution();
-                // Shrink optimization bounds (i.e. ask the next solution to be better)
-                if (solutionFound)
-                {
-                    if (searchType == Maximization)
-                    {
-                        constraints->parameters[optConstraint][0] = variables->domains.getMin(optVariable) + 1;
-                    }
-                    else if (searchType == Minimization)
-                    {
-                        constraints->parameters[optConstraint][0] = variables->domains.getMin(optVariable) - 1;
-                    }
-                }
                 
                 //BTSearcher.deinitialize(); // searcher no longer needed
                 SNBSState = NewNeighborhood;
