@@ -30,6 +30,25 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
     int varY {constraintVariables->at(1)};
     int varZ {constraintVariables->at(2)};
     
+    bool xMaxIsPos {variables->domains.getMax(varX) >= 0};
+    bool xMinIsNeg {variables->domains.getMin(varX) < 0};
+    bool yMaxIsPos {variables->domains.getMax(varY) >= 0};
+    bool yMinIsNeg {variables->domains.getMin(varY) < 0};
+    bool zMaxIsPos {variables->domains.getMax(varZ) >= 0};
+    bool zMinIsNeg {variables->domains.getMin(varZ) < 0};
+    
+    int posMinX {variables->domains.getMin(varX)};
+    int posMinY {variables->domains.getMin(varY)};
+    int posMinZ {variables->domains.getMin(varZ)};
+    int posMaxX {variables->domains.getMax(varX)};
+    int posMaxY {variables->domains.getMax(varY)};
+    int posMaxZ {variables->domains.getMax(varZ)};
+    int negMinX {variables->domains.getMin(varX)};
+    int negMinY {variables->domains.getMin(varY)};
+    int negMinZ {variables->domains.getMin(varZ)};
+    int negMaxX {variables->domains.getMax(varX)};
+    int negMaxY {variables->domains.getMax(varY)};
+    int negMaxZ {variables->domains.getMax(varZ)};
     int minX {variables->domains.getMin(varX)};
     int minY {variables->domains.getMin(varY)};
     int minZ {variables->domains.getMin(varZ)};
@@ -37,196 +56,192 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
     int maxY {variables->domains.getMax(varY)};
     int maxZ {variables->domains.getMax(varZ)};
     
-    // Fast truncations: remove all values that are obviously unsupported
-    // e.g. if z = {100} then x = 1 can't be supported if max(y)=50
-    
     // ---------------------------------------------------------
-    // Fast truncations - minimums
+    // Check z lower bound
     // ---------------------------------------------------------
-    int q;
-    (minY != 0) ? q = minZ / minY : q = 0;
-    intDomAct.removeAnyLesserThan(varX, q);
-    (minY != 0) ? q = minZ / minY : q = 0;
-    intDomAct.removeAnyLesserThan(varY, minZ / minX);
-    intDomAct.removeAnyLesserThan(varZ, minX * minY);
-    
-    // ---------------------------------------------------------
-    // Fast truncations - maximums
-    // ---------------------------------------------------------
-    int r;
-    (maxZ % maxY == 0) ? r=0 : r = 1;
-    intDomAct.removeAnyGreaterThan(varX, maxZ / maxY + r);
-    (maxZ % maxX == 0) ? r=0 : r = 1;
-    intDomAct.removeAnyGreaterThan(varY, maxZ / maxX + r);
-    intDomAct.removeAnyGreaterThan(varZ, maxX * maxY);
-    
-    // Check if any domain has been emptied
-    if
-    (
-        intDomRepr.getApproximateCardinality(varX) < 1 or
-        intDomRepr.getApproximateCardinality(varY) < 1 or
-        intDomRepr.getApproximateCardinality(varZ) < 1
-    )
     {
-        // A domain has been emptied
-        return;
-    }
-    
-    // ---------------------------------------------------------
-    // Verify support for the minimum of x
-    // ---------------------------------------------------------
-    bool supported {false};
-    int valY {variables->domains.getMin(varY)};
-    do
-    {
-        // Iterating over values of x
-        do
+        int minVal { minZ };
+        // 100 * -100
+        if(xMaxIsPos and yMinIsNeg)
         {
-            // Iterating over values of y
-            if( intDomRepr.contain(varZ, minX * valY) )
+            int p {posMaxX * negMaxY};
+            if( p < minVal)
             {
-                supported = true;
+                minVal = p;
             }
-        }while(!supported and intDomRepr.getNextValue(varY, valY, &valY));
-    }while(!supported and intDomRepr.getNextValue(varX, minX, &minX));
-    if(!supported)
+        }
+        // -100 * 100
+        if(xMinIsNeg and yMaxIsPos)
+        {
+            int p { negMaxX * posMaxY };
+            if(p < minVal)
+            {
+                minVal = p;
+            }
+        }
+        // 1 * 1
+        if(xMaxIsPos and yMaxIsPos)
+        {
+            int p {posMinX * posMinY};
+            if( p < minVal)
+            {
+                minVal = p;
+            }
+        }
+        // -1 * -1
+        if(xMinIsNeg and yMinIsNeg)
+        {
+            int p { negMaxX * negMaxY };
+            if(p < minVal)
+            {
+                minVal = p;
+            }
+        }
+        
+        intDomAct.removeAnyLesserThan(varZ, minVal);
+    } //~
+    // ---------------------------------------------------------
+    // Check z upper bound
+    // ---------------------------------------------------------
     {
-        // No support
-        intDomRepr.removeAll(varX);
-        return;
-    }
-    // Remove unsupported values
-    intDomAct.removeAnyLesserThan(varX, minX);
+        int maxVal { maxZ };
+        // 100 * 100
+        if(xMaxIsPos and yMaxIsPos)
+        {
+            int p {posMaxX * posMaxY};
+            if( p > maxVal)
+            {
+                maxVal = p;
+            }
+        }
+        // -100 * -100
+        if(xMinIsNeg and yMinIsNeg)
+        {
+            int p { negMinX * negMinY };
+            if(p > maxVal)
+            {
+                maxVal = p;
+            }
+        }
+        // 100 * -1
+        if(xMaxIsPos and yMinIsNeg)
+        {
+            int p {posMaxX * negMaxY};
+            if( p > maxVal)
+            {
+                maxVal = p;
+            }
+        }
+        // -1 * 100
+        if(xMinIsNeg and yMaxIsPos)
+        {
+            int p { negMaxX * posMaxY };
+            if(p > maxVal)
+            {
+                maxVal = p;
+            }
+        }
+        
+        intDomAct.removeAnyGreaterThan(varZ, maxVal);
+    } //~
     
     // ---------------------------------------------------------
-    // Verify support for the minimum of y
+    // Check x lower bound
     // ---------------------------------------------------------
-    supported = false;
-    int valX {variables->domains.getMin(varX)};
-    do
     {
-        // Iterating over values of y
-        do
+        int minVal { minX };
+        // 100 / -1
+        if(zMaxIsPos and yMinIsNeg)
         {
-            // Iterating over values of x
-            if( intDomRepr.contain(varZ, valX * minY) )
+            int q {posMaxZ / negMaxY};
+            if(q < minVal)
             {
-                supported = true;
+                minVal = q;
             }
-        }while(!supported and intDomRepr.getNextValue(varX, valX, &valX));
-    }while(!supported and intDomRepr.getNextValue(varY, minY, &minY));
-    if(!supported)
+        }
+        // -100 / 1
+        if(zMinIsNeg and yMaxIsPos and posMinY > 0)
+        {
+            int q { negMinZ / posMinY };
+            if(q < minVal)
+            {
+                minVal = q;
+            }
+        }
+        // 1 / 100
+        // Beware this particlar case: 
+        //--x = {0..n} y = {1..m} z = {1..k}
+        //--posMinZ / posMaxY = 1 / m which can be < 1 (approximated to 0)
+        //--The zero won't be removed from x! (it should, since x=0 is not supported)
+        if(zMaxIsPos and yMaxIsPos and posMinZ > 0)
+        {
+            int q {posMinZ / posMaxY};
+            (q < 1) ? q = 1 ; // Fix for the problem above
+            if(q < minVal)
+            {
+                minVal = q;
+            }
+        }
+        // -1 / -100
+        // Watch out as above
+        //   x = {0..n} y = {-100..m} z = {-1..k}
+        if(zMinIsNeg and yMinIsNeg)
+        {
+            int q { negMaxZ * negMinY };
+            if(q < minVal)
+            {
+                minVal = q;
+            }
+        }
+        
+        intDomAct.removeAnyLesserThan(varZ, minVal);
+    } //~
+    // ---------------------------------------------------------
+    // Check z upper bound
+    // ---------------------------------------------------------
     {
-        // No support
-        intDomRepr.removeAll(varY);
-        return;
-    }
-    // Remove unsupported values
-    intDomAct.removeAnyLesserThan(varY, minY);
+        int maxVal { maxZ };
+        // 100 * 100
+        if(xMaxIsPos and yMaxIsPos)
+        {
+            int p {posMaxX * posMaxY};
+            if( p > maxVal)
+            {
+                maxVal = p;
+            }
+        }
+        // -100 * -100
+        if(xMinIsNeg and yMinIsNeg)
+        {
+            int p { negMinX * negMinY };
+            if(p > maxVal)
+            {
+                maxVal = p;
+            }
+        }
+        // 100 * -1
+        if(xMaxIsPos and yMinIsNeg)
+        {
+            int p {posMaxX * negMaxY};
+            if( p > maxVal)
+            {
+                maxVal = p;
+            }
+        }
+        // -1 * 100
+        if(xMinIsNeg and yMaxIsPos)
+        {
+            int p = negMaxX * posMaxY;
+            if(p > maxVal)
+            {
+                maxVal = p;
+            }
+        }
+        
+        intDomAct.removeAnyGreaterThan(varZ, maxVal);
+    } //~
     
-    // ---------------------------------------------------------
-    // Verify support for the minimum of z
-    // ---------------------------------------------------------
-    supported = false;
-    valX = variables->domains.getMin(varX);
-    do
-    {
-        // Iterating over values of z
-        do
-        {
-            // Iterating over values of x
-            if( (minZ % valX == 0) and intDomRepr.contain(varY, minZ / valX) )
-            {
-                supported = true;
-            }
-        }while(!supported and intDomRepr.getNextValue(varX, valX, &valX));
-    }while(!supported and intDomRepr.getNextValue(varZ, minZ, &minZ));
-    if(!supported)
-    {
-        // No support
-        intDomRepr.removeAll(varZ);
-        return;
-    }
-    // Remove unsupported values
-    intDomAct.removeAnyLesserThan(varZ, minZ);
-    
-    // ---------------------------------------------------------
-    // Verify support for the maximum of x
-    // ---------------------------------------------------------
-    supported = false;
-    valY = variables->domains.getMin(varY);
-    do
-    {
-        // Iterating over values of x
-        do
-        {
-            // Iterating over values of y
-            if( intDomRepr.contain(varZ, maxX * valY) )
-            {
-                supported = true;
-            }
-        }while(!supported and intDomRepr.getNextValue(varY, valY, &valY));
-    }while(!supported and intDomRepr.getPrevValue(varX, maxX, &maxX));
-    if(!supported)
-    {
-        // No support
-        intDomRepr.removeAll(varX);
-        return;
-    }
-    // Remove unsupported values
-    intDomAct.removeAnyGreaterThan(varX, maxX);
-    
-    // ---------------------------------------------------------
-    // Verify support for the maximum of y
-    // ---------------------------------------------------------
-    supported = false;
-    valX = variables->domains.getMin(varX);
-    do
-    {
-        // Iterating over values of y
-        do
-        {
-            // Iterating over values of x
-            if( intDomRepr.contain(varZ, valX * maxY) )
-            {
-                supported = true;
-            }
-        }while(!supported and intDomRepr.getNextValue(varX, valX, &valX));
-    }while(!supported and intDomRepr.getPrevValue(varY, maxY, &maxY));
-    if(!supported)
-    {
-        // No support
-        intDomRepr.removeAll(varY);
-        return;
-    }
-    // Remove unsupported values
-    intDomAct.removeAnyGreaterThan(varY, maxY);
-    
-    // ---------------------------------------------------------
-    // Verify support for the maximum of z
-    // ---------------------------------------------------------
-    supported = false;
-    valX = variables->domains.getMin(varX);
-    do
-    {
-        // Iterating over values of z
-        do
-        {
-            // Iterating over values of x
-            if( (maxZ % valX == 0) and intDomRepr.contain(varY, maxZ / valX) )
-            {
-                supported = true;
-            }
-        }while(!supported and intDomRepr.getNextValue(varX, valX, &valX));
-    }while(!supported and intDomRepr.getPrevValue(varZ, maxZ, &maxZ));
-    if(!supported)
-    {
-        // No support
-        intDomRepr.removeAll(varZ);
-        return;
-    }
-    // Remove unsupported values
-    intDomAct.removeAnyGreaterThan(varZ, maxZ);
+
     
     #ifdef NDEBUG
         // assert check
