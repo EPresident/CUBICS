@@ -1,8 +1,8 @@
 int: n;
 
-var 0..n: x;
-var 0..n: y;
-var 0..n*n: z;
+var-n..n: x;
+var -n..n: y;
+var -n*n..n*n: z;
 
 constraint z = x * y;
 
