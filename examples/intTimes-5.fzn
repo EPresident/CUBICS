@@ -1,0 +1,5 @@
+var 0..5: x;
+var 0..5: y;
+var 0..25: z:: output_var:: is_defined_var;
+constraint int_times(x,y,z):: defines_var(z);
+solve  maximize z;
