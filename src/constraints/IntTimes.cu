@@ -121,7 +121,7 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
         #ifdef NDEBUG
             assert(minVal < INT_MAX);
         #endif
-        (minVal > minZ) ? intDomAct.removeAnyLesserThan(varZ, minVal);
+        if(minVal > minZ) intDomAct.removeAnyLesserThan(varZ, minVal);
     } //~
     // ---------------------------------------------------------
     // Check z upper bound
@@ -176,7 +176,7 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
         #ifdef NDEBUG
             assert(maxVal > INT_MIN);
         #endif
-        (maxVal < maxZ) ? intDomAct.removeAnyGreaterThan(varZ, maxVal);
+        if(maxVal < maxZ) intDomAct.removeAnyGreaterThan(varZ, maxVal);
     } //~
     
     // ---------------------------------------------------------
@@ -217,8 +217,8 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
         //--posMinZ / posMaxY = 1 / m
         if(zMaxIsPos and yMaxIsPos and posMaxY != 0)
         {
-            int d {posMaxY}
-            (posMaxY > posMinZ and posMinZ != 0) ? d = posMinZ;
+            int d {posMaxY};
+            if(posMaxY > posMinZ and posMinZ != 0) d = posMinZ;
             // This way q is one if posMinZ < posMaxY
             // but it stays zero if posMinZ==0
             int q {posMinZ / d};
@@ -234,7 +234,7 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
         if(zMinIsNeg and yMinIsNeg)
         {
             int q { negMaxZ / negMinY };
-            (q < 1) ? q = 1; // This way q is one if negMaxZ < negMinY
+            if(q < 1) q = 1; // This way q is one if negMaxZ < negMinY
             if(q < minVal)
             {
                 minVal = q;
@@ -244,7 +244,7 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
         #ifdef NDEBUG
             assert(minVal < INT_MAX);
         #endif
-        (minVal > minX) ? intDomAct.removeAnyLesserThan(varX, minVal);
+        if(minVal > minX) intDomAct.removeAnyLesserThan(varX, minVal);
     } //~
     // ---------------------------------------------------------
     // Check x upper bound
@@ -257,12 +257,12 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
         // e.g. 100 / 1
         if(zMaxIsPos and yMaxIsPos and posMaxY > 0)
         {
-            int d {posMinY} 
-            (d == 0) ? d=1 ; 
+            int d {posMinY} ;
+            if(d == 0) d=1 ; 
             // This way I don't divide by zero
             // Since posMaxY > 0 I can divide by 1 instead
             int q {posMaxZ / d};
-            (posMaxZ % d != 0) ? q += 1; // ceiling
+            if(posMaxZ % d != 0) q += 1; // ceiling
             if( q > maxVal)
             {
                 maxVal = q;
@@ -275,7 +275,7 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
         if(zMinIsNeg and yMinIsNeg)
         {
             int q { negMinZ / negMaxY };
-            (negMinZ % negMaxY != 0) ? q += 1; // ceiling
+            if(negMinZ % negMaxY != 0) q += 1; // ceiling
             if(q > maxVal)
             {
                 maxVal = q;
@@ -289,7 +289,7 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
         {
             int q {posMinZ / negMinY};
             //(posMinZ % negMaxY != 0) ? q -= 1; // ceiling
-            (q >= 0) ? q = -1; // make sure to stay negative (posMinZ can be 0)
+            if(q >= 0) q = -1; // make sure to stay negative (posMinZ can be 0)
             if( q > maxVal)
             {
                 maxVal = q;
@@ -303,7 +303,7 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
         {
             int q = negMaxZ / posMaxY;
             //(negMaxZ % posMaxY != 0) ? q -= 1; // ceiling
-            (q >= 0) ? q = -1; // make sure to stay negative
+            if(q >= 0) q = -1; // make sure to stay negative
             if(q > maxVal)
             {
                 maxVal = q;
@@ -313,7 +313,7 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
         #ifdef NDEBUG
             assert(maxVal > INT_MIN);
         #endif
-        (maxVal < maxX) ? intDomAct.removeAnyGreaterThan(varX, maxVal);
+        if(maxVal < maxX) intDomAct.removeAnyGreaterThan(varX, maxVal);
     } //~
     
 
