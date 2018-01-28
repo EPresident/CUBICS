@@ -29,6 +29,24 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
     int varX {constraintVariables->at(0)};
     int varY {constraintVariables->at(1)};
     int varZ {constraintVariables->at(2)};
+
+    int minX {variables->domains.getMin(varX)};
+    int minY {variables->domains.getMin(varY)};
+    int minZ {variables->domains.getMin(varZ)};
+    int maxX {variables->domains.getMax(varX)};
+    int maxY {variables->domains.getMax(varY)};
+    int maxZ {variables->domains.getMax(varZ)};
+    
+    // ---> CLARIFICATION / REMINDER <---
+    // Just to be 99.99999% clear!
+    // In the following code this "convention" is adopted,
+    // considering as an example the full range {-100..100}:
+    // - lowest negative value: -100
+    // - highest negative value: -1
+    // - lowest positive value: 0
+    // - highest positive value: 100
+    //
+    // --- Elia
     
     bool xMaxIsPos {variables->domains.getMax(varX) >= 0};
     bool xMinIsNeg {variables->domains.getMin(varX) < 0};
@@ -49,46 +67,48 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
     int negMaxX {variables->domains.getMax(varX)};
     int negMaxY {variables->domains.getMax(varY)};
     int negMaxZ {variables->domains.getMax(varZ)};
-    int minX {variables->domains.getMin(varX)};
-    int minY {variables->domains.getMin(varY)};
-    int minZ {variables->domains.getMin(varZ)};
-    int maxX {variables->domains.getMax(varX)};
-    int maxY {variables->domains.getMax(varY)};
-    int maxZ {variables->domains.getMax(varZ)};
     
     // ---------------------------------------------------------
     // Check z lower bound
     // ---------------------------------------------------------
     {
-        int minVal { minZ };
-        // 100 * -100
-        if(xMaxIsPos and yMinIsNeg)
+        int minVal { INT_MAX };
+        // If x has negative values, get the lowest negative possible
+        // multiplying by the greatest positive value in y
+        // e.g. 100 * -100
+        if(xMaxIsPos and yMinIsNeg and posMaxX > 0)
         {
-            int p {posMaxX * negMaxY};
-            if( p < minVal)
-            {
-                minVal = p;
-            }
-        }
-        // -100 * 100
-        if(xMinIsNeg and yMaxIsPos)
-        {
-            int p { negMaxX * posMaxY };
+            int p {posMaxX * negMinY};
             if(p < minVal)
             {
                 minVal = p;
             }
         }
-        // 1 * 1
-        if(xMaxIsPos and yMaxIsPos)
+        // If x has negative values, get the lowest negative possible
+        // multiplying by the greatest positive value in y
+        // e.g. -100 * 100
+        if(xMinIsNeg and yMaxIsPos and posMaxY > 0)
         {
-            int p {posMinX * posMinY};
-            if( p < minVal)
+            int p { negMinX * posMaxY };
+            if(p < minVal)
             {
                 minVal = p;
             }
         }
-        // -1 * -1
+        // If x and y both have positive values, get the lowest positive 
+        // value possible by multiplying the smallest positive values
+        // e.g. 1 * 1
+        if(xMaxIsPos and yMaxIsPos)
+        {
+            int p {posMinX * posMinY};
+            if(p < minVal)
+            {
+                minVal = p;
+            }
+        }
+        // If x and y both have negative values, get the lowest positive 
+        // value possible by multiplying the smallest negative values
+        // e.g. -1 * -1
         if(xMinIsNeg and yMinIsNeg)
         {
             int p { negMaxX * negMaxY };
@@ -98,14 +118,19 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
             }
         }
         
-        intDomAct.removeAnyLesserThan(varZ, minVal);
+        #ifdef NDEBUG
+            assert(minVal < INT_MAX);
+        #endif
+        (minVal > minZ) ? intDomAct.removeAnyLesserThan(varZ, minVal);
     } //~
     // ---------------------------------------------------------
     // Check z upper bound
     // ---------------------------------------------------------
     {
-        int maxVal { maxZ };
-        // 100 * 100
+        int maxVal { INT_MIN };
+        // If x and y both have positive values, get the highest positive 
+        // value possible by multiplying the greatest positive values
+        // e.g. 100 * 100
         if(xMaxIsPos and yMaxIsPos)
         {
             int p {posMaxX * posMaxY};
@@ -114,7 +139,9 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
                 maxVal = p;
             }
         }
-        // -100 * -100
+        // If x and y both have negative values, get the highest positive 
+        // value possible by multiplying the lowest negative values
+        // e.g. -100 * -100
         if(xMinIsNeg and yMinIsNeg)
         {
             int p { negMinX * negMinY };
@@ -123,35 +150,46 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
                 maxVal = p;
             }
         }
-        // 100 * -1
+        // If y has negative values, get the highest negative possible
+        // multiplying by the smallest positive value in x
+        // e.g. 1 * -1
         if(xMaxIsPos and yMinIsNeg)
         {
-            int p {posMaxX * negMaxY};
+            int p {posMinX * negMaxY};
             if( p > maxVal)
             {
                 maxVal = p;
             }
         }
-        // -1 * 100
+        // If x has negative values, get the highest negative possible
+        // multiplying by the smallest positive value in y 
+        // e.g. -1 * 1
         if(xMinIsNeg and yMaxIsPos)
         {
-            int p { negMaxX * posMaxY };
+            int p { negMaxX * posMinY };
             if(p > maxVal)
             {
                 maxVal = p;
             }
         }
         
-        intDomAct.removeAnyGreaterThan(varZ, maxVal);
+        #ifdef NDEBUG
+            assert(maxVal > INT_MIN);
+        #endif
+        (maxVal < maxZ) ? intDomAct.removeAnyGreaterThan(varZ, maxVal);
     } //~
     
     // ---------------------------------------------------------
     // Check x lower bound
     // ---------------------------------------------------------
     {
-        int minVal { minX };
-        // 100 / -1
-        if(zMaxIsPos and yMinIsNeg)
+        int minVal { INT_MAX };
+        // If z has positive values,
+        // and y has negative values,
+        // get the smallest negative possible
+        // Of course it makes sense only if z > y
+        // e.g. 100 / -1
+        if(zMaxIsPos and yMinIsNeg and posMaxZ > negMaxY)
         {
             int q {posMaxZ / negMaxY};
             if(q < minVal)
@@ -159,8 +197,12 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
                 minVal = q;
             }
         }
-        // -100 / 1
-        if(zMinIsNeg and yMaxIsPos and posMinY > 0)
+        // If z has negative values,
+        // and y has positive values,
+        // get the smallest negative possible
+        // Of course it makes sense only if |z| > y
+        // e.g. -100 / 1
+        if(zMinIsNeg and yMaxIsPos and posMinY > 0 and -negMinZ > posMinY)
         {
             int q { negMinZ / posMinY };
             if(q < minVal)
@@ -168,77 +210,110 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
                 minVal = q;
             }
         }
-        // 1 / 100
-        // Beware this particlar case: 
+        // If z and y have positive values,
+        // get the smallest positive x possible
+        // e.g. 1 / 100
         //--x = {0..n} y = {1..m} z = {1..k}
-        //--posMinZ / posMaxY = 1 / m which can be < 1 (approximated to 0)
-        //--The zero won't be removed from x! (it should, since x=0 is not supported)
-        if(zMaxIsPos and yMaxIsPos and posMinZ > 0)
+        //--posMinZ / posMaxY = 1 / m
+        if(zMaxIsPos and yMaxIsPos and posMaxY != 0)
         {
-            int q {posMinZ / posMaxY};
-            (q < 1) ? q = 1 ; // Fix for the problem above
+            int d {posMaxY}
+            (posMaxY > posMinZ and posMinZ != 0) ? d = posMinZ;
+            // This way q is one if posMinZ < posMaxY
+            // but it stays zero if posMinZ==0
+            int q {posMinZ / d};
             if(q < minVal)
             {
                 minVal = q;
             }
         }
-        // -1 / -100
-        // Watch out as above
+        // If z and y have negative values,
+        // get the smallest positive x possible
+        // e.g. -1 / -100
         //   x = {0..n} y = {-100..m} z = {-1..k}
         if(zMinIsNeg and yMinIsNeg)
         {
-            int q { negMaxZ * negMinY };
+            int q { negMaxZ / negMinY };
+            (q < 1) ? q = 1; // This way q is one if negMaxZ < negMinY
             if(q < minVal)
             {
                 minVal = q;
             }
         }
         
-        intDomAct.removeAnyLesserThan(varZ, minVal);
+        #ifdef NDEBUG
+            assert(minVal < INT_MAX);
+        #endif
+        (minVal > minX) ? intDomAct.removeAnyLesserThan(varX, minVal);
     } //~
     // ---------------------------------------------------------
-    // Check z upper bound
+    // Check x upper bound
     // ---------------------------------------------------------
     {
-        int maxVal { maxZ };
-        // 100 * 100
-        if(xMaxIsPos and yMaxIsPos)
+        int maxVal { INT_MIN };
+        
+        // If z and y have positive values,
+        // get the biggest positive x possible
+        // e.g. 100 / 1
+        if(zMaxIsPos and yMaxIsPos and posMaxY > 0)
         {
-            int p {posMaxX * posMaxY};
-            if( p > maxVal)
+            int d {posMinY} 
+            (d == 0) ? d=1 ; 
+            // This way I don't divide by zero
+            // Since posMaxY > 0 I can divide by 1 instead
+            int q {posMaxZ / d};
+            (posMaxZ % d != 0) ? q += 1; // ceiling
+            if( q > maxVal)
             {
-                maxVal = p;
-            }
-        }
-        // -100 * -100
-        if(xMinIsNeg and yMinIsNeg)
-        {
-            int p { negMinX * negMinY };
-            if(p > maxVal)
-            {
-                maxVal = p;
-            }
-        }
-        // 100 * -1
-        if(xMaxIsPos and yMinIsNeg)
-        {
-            int p {posMaxX * negMaxY};
-            if( p > maxVal)
-            {
-                maxVal = p;
-            }
-        }
-        // -1 * 100
-        if(xMinIsNeg and yMaxIsPos)
-        {
-            int p = negMaxX * posMaxY;
-            if(p > maxVal)
-            {
-                maxVal = p;
+                maxVal = q;
             }
         }
         
-        intDomAct.removeAnyGreaterThan(varZ, maxVal);
+        // If z and y have negative values,
+        // get the biggest positive x possible
+        // e.g. -100 / -1
+        if(zMinIsNeg and yMinIsNeg)
+        {
+            int q { negMinZ / negMaxY };
+            (negMinZ % negMaxY != 0) ? q += 1; // ceiling
+            if(q > maxVal)
+            {
+                maxVal = q;
+            }
+        }
+        // If z has positive values,
+        // and y has negative values,
+        // get the biggest negative x possible (close to zero)
+        // e.g. 1 / -100
+        if(zMaxIsPos and yMinIsNeg)
+        {
+            int q {posMinZ / negMinY};
+            //(posMinZ % negMaxY != 0) ? q -= 1; // ceiling
+            (q >= 0) ? q = -1; // make sure to stay negative (posMinZ can be 0)
+            if( q > maxVal)
+            {
+                maxVal = q;
+            }
+        }
+        // If z has negative values,
+        // and y has positive values,
+        // get the biggest negative x possible (close to zero)
+        // e.g. -1 / 100
+        if(zMinIsNeg and yMaxIsPos and posMaxY > 0)
+        {
+            int q = negMaxZ / posMaxY;
+            //(negMaxZ % posMaxY != 0) ? q -= 1; // ceiling
+            (q >= 0) ? q = -1; // make sure to stay negative
+            if(q > maxVal)
+            {
+                maxVal = q;
+            }
+        }
+        
+        #ifdef NDEBUG
+            assert(maxVal > INT_MIN);
+        #endif
+        (maxVal < maxX) ? intDomAct.removeAnyGreaterThan(varX, maxVal);
     } //~
     
 
