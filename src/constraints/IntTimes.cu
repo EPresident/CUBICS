@@ -22,7 +22,7 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
     //~ DEV NOTE (TODO): the code for the support verification of the variables
     //~ could be refactored in a function.
     Vector<int>* constraintVariables = &constraints->variables[index];
-    //IntDomainsRepresentations& intDomRepr  = variables->domains.representations;
+    IntDomainsRepresentations& intDomRepr  = variables->domains.representations;
     IntDomainsActions& intDomAct = variables->domains.actions;
     
     // Indices of the variables
@@ -463,6 +463,158 @@ cudaDevice void IntTimes::propagate(IntConstraints* constraints, int index, IntV
         if(maxVal < maxY) intDomAct.removeAnyGreaterThan(varY, maxVal);
     } //~
 
+    //---------------------------------------------------------------------
+    //---------------------------------------------------------------------
+    //---------------------------------------------------------------------
+    //----------       Bound values support check       -------------------
+    //---------------------------------------------------------------------
+    //---------------------------------------------------------------------
+    //---------------------------------------------------------------------
+    
+    // ---------------------------------------------------------
+    // Verify support for the minimum of x
+    // ---------------------------------------------------------
+    bool supported {false};
+    int valY {minY};
+    do // Iterating over values of x
+    {
+        do // Iterating over values of y
+        {
+            
+            if( intDomRepr.contain(varZ, minX * valY) )
+            {
+                supported = true;
+            }
+        }while(!supported and intDomRepr.getNextValue(varY, valY, &valY));
+    }while(!supported and intDomRepr.getNextValue(varX, minX, &minX));
+    if(!supported)
+    {
+        // No support
+        intDomRepr.removeAll(varX);
+        return;
+    }
+    // Remove unsupported values
+    intDomAct.removeAnyLesserThan(varX, minX);
+    
+    // ---------------------------------------------------------
+    // Verify support for the minimum of y
+    // ---------------------------------------------------------
+    supported = false;
+    int valX {minX};
+    do  // Iterating over values of y
+    {
+        do // Iterating over values of x
+        {
+            if( intDomRepr.contain(varZ, valX * minY) )
+            {
+                supported = true;
+            }
+        }while(!supported and intDomRepr.getNextValue(varX, valX, &valX));
+    }while(!supported and intDomRepr.getNextValue(varY, minY, &minY));
+    if(!supported)
+    {
+        // No support
+        intDomRepr.removeAll(varY);
+        return;
+    }
+    // Remove unsupported values
+    intDomAct.removeAnyLesserThan(varY, minY);
+    
+    // ---------------------------------------------------------
+    // Verify support for the minimum of z
+    // ---------------------------------------------------------
+    supported = false;
+    valX = variables->domains.getMin(varX);
+    do // Iterating over values of z
+    {
+        do // Iterating over values of x
+        {
+            if( (minZ % valX == 0) and intDomRepr.contain(varY, minZ / valX) )
+            {
+                supported = true;
+            }
+        }while(!supported and intDomRepr.getNextValue(varX, valX, &valX));
+    }while(!supported and intDomRepr.getNextValue(varZ, minZ, &minZ));
+    if(!supported)
+    {
+        // No support
+        intDomRepr.removeAll(varZ);
+        return;
+    }
+    // Remove unsupported values
+    intDomAct.removeAnyLesserThan(varZ, minZ);
+    
+    // ---------------------------------------------------------
+    // Verify support for the maximum of x
+    // ---------------------------------------------------------
+    supported = false;
+    valY = variables->domains.getMax(varY);
+    do // Iterating over values of x
+    {
+        do // Iterating over values of y
+        {
+            if( intDomRepr.contain(varZ, maxX * valY) )
+            {
+                supported = true;
+            }
+        }while(!supported and intDomRepr.getPrevValue(varY, valY, &valY));
+    }while(!supported and intDomRepr.getPrevValue(varX, maxX, &maxX));
+    if(!supported)
+    {
+        // No support
+        intDomRepr.removeAll(varX);
+        return;
+    }
+    // Remove unsupported values
+    intDomAct.removeAnyGreaterThan(varX, maxX);
+    
+    // ---------------------------------------------------------
+    // Verify support for the maximum of y
+    // ---------------------------------------------------------
+    supported = false;
+    valX = variables->domains.getMax(varX);
+    do // Iterating over values of y
+    {
+        do // Iterating over values of x
+        {
+            if( intDomRepr.contain(varZ, valX * maxY) )
+            {
+                supported = true;
+            }
+        }while(!supported and intDomRepr.getPrevValue(varX, valX, &valX));
+    }while(!supported and intDomRepr.getPrevValue(varY, maxY, &maxY));
+    if(!supported)
+    {
+        // No support
+        intDomRepr.removeAll(varY);
+        return;
+    }
+    // Remove unsupported values
+    intDomAct.removeAnyGreaterThan(varY, maxY);
+    
+    // ---------------------------------------------------------
+    // Verify support for the maximum of z
+    // ---------------------------------------------------------
+    supported = false;
+    valX = variables->domains.getMax(varX);
+    do // Iterating over values of z
+    {
+        do // Iterating over values of x
+        {
+            if( (maxZ % valX == 0) and intDomRepr.contain(varY, maxZ / valX) )
+            {
+                supported = true;
+            }
+        }while(!supported and intDomRepr.getPrevValue(varX, valX, &valX));
+    }while(!supported and intDomRepr.getPrevValue(varZ, maxZ, &maxZ));
+    if(!supported)
+    {
+        // No support
+        intDomRepr.removeAll(varZ);
+        return;
+    }
+    // Remove unsupported values
+    intDomAct.removeAnyGreaterThan(varZ, maxZ);
     
     #ifdef NDEBUG
         // assert check
