@@ -243,16 +243,19 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                             chosenValues[neighVarsAssigned], &chosenValue) 
                           );
                 }
-                
+                currentVar = chosenVariables[neighVarsAssigned];
                 if(neighVarsAssigned >= 0)
                 {
                     chosenValues[neighVarsAssigned] = chosenValue;
                     
+                    assert(variables->domains.representations.contain(currentVar, chosenValue));
                     // Start assigning next value(s)
-                    variables->domains.fixValue(chosenVariables[neighVarsAssigned], chosenValue);
+                    variables->domains.fixValue(currentVar, chosenValue);
                     while(++neighVarsAssigned < unassignAmount)
                     {
-                        variables->domains.fixValue(chosenVariables[neighVarsAssigned], 
+                        currentVar = chosenVariables[neighVarsAssigned];
+                        assert(variables->domains.representations.contain(currentVar, chosenValue));
+                        variables->domains.fixValue(currentVar,
                             chosenValues[neighVarsAssigned]);
                     }
                     
