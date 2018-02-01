@@ -12,6 +12,7 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     constraints = fzModel->intConstraints;
     
     unassignAmount = variables->count*unassignRate;
+    if(unassignAmount < 1) unassignAmount = 1;
 
     BTSearcher.initialize(fzModel);
     chosenVariables.initialize(unassignAmount);
