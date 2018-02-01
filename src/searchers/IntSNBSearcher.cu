@@ -225,28 +225,26 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
             break;
             case NextCandidate:
             {
+                #ifndef NDEBUG
+                        printf("Next candidate\n");
+                #endif
+                assert(neighVarsAssigned == unassignAmount);
                 // Get the next candidate solution
                 // Undo assignments until a new value can be set
-                --neighVarsAssigned;
-                int currentVar = chosenVariables[neighVarsAssigned];
-                unassignVariable(currentVar);
+                int currentVar;
+                bool hasNextValue = false;
+                do
+                {
+                    currentVar = chosenVariables[--neighVarsAssigned];
+                    unassignVariable(currentVar);
+                    hasNextValue = valuesChooser.getNextValue(currentVar, 
+                        chosenValues[neighVarsAssigned], &chosenValue);
+                    chosenValues.pop_back();
+                }while(not hasNextValue and neighVarsAssigned > 0);
                 
-                if(not valuesChooser.getNextValue(currentVar, 
-                        chosenValues[neighVarsAssigned], &chosenValue) )
+                if(hasNextValue)
                 {
-                    do
-                    {
-                        currentVar = chosenVariables[--neighVarsAssigned];
-                        unassignVariable(currentVar);
-                    }while( neighVarsAssigned-1 >= 0 and
-                            not valuesChooser.getNextValue(currentVar, 
-                            chosenValues[neighVarsAssigned], &chosenValue) 
-                          );
-                }
-                currentVar = chosenVariables[neighVarsAssigned];
-                if(neighVarsAssigned >= 0)
-                {
-                    chosenValues[neighVarsAssigned] = chosenValue;
+                    chosenValues.push_back(chosenValue);
                     
                     assert(variables->domains.representations.contain(currentVar, chosenValue));
                     // Start assigning next value(s)
@@ -254,9 +252,15 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                     while(++neighVarsAssigned < unassignAmount)
                     {
                         currentVar = chosenVariables[neighVarsAssigned];
-                        assert(variables->domains.representations.contain(currentVar, chosenValue));
-                        variables->domains.fixValue(currentVar,
-                            chosenValues[neighVarsAssigned]);
+                        if (not variables->domains.isSingleton(currentVar))
+                        {
+                            // Domain not singleton already
+                            valuesChooser.getFirstValue(currentVar, &chosenValue);
+                            assert(variables->domains.representations.contain(currentVar, chosenValue));
+                            variables->domains.fixValue(currentVar, chosenValue);
+                        }
+                        chosenValues.push_back(chosenValue);
+                        
                     }
                     
                     // Next candidate has been generated
@@ -265,20 +269,33 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                 else
                 {
                     // Done exploring the neighborhood
+                    #ifndef NDEBUG
+                    assert(neighVarsAssigned==0);
+                    #endif
                     SNBSState = NewNeighborhood;
                     ++iterationsDone;
+                    
+                    #ifndef NDEBUG
+                    printf("Next neighborhood (%d)\n",iterationsDone);
+                    #endif
                 }
             }
             break;
             case Test:
             {
+                #ifndef NDEBUG
+                    printf("Testing...");
+                #endif
                 // Check if the generated solution is good
                 // Also need to compute the cost function!
                 // (but it should be a singleton after propagation, so...)
                 bool noEmptyDomains = propagator.propagateConstraints();
                 
-                if (noEmptyDomains)
+                if (noEmptyDomains and propagator.verifyConstraints())
                 {
+                    #ifndef NDEBUG
+                        printf("Solution found! %d\n", iterationsDone);
+                    #endif
                     assert(variables->domains.isSingleton(chosenVariables.back()));
                     solutionFound=true;
                     // Backup improving solution
@@ -293,13 +310,15 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                     
                 // Try another value.
                 SNBSState = FreeOptVar;
+                #ifndef NDEBUG
+                    printf(" done testing\n");
+                #endif
             }
             break;
             case FreeOptVar:
             {
                 // Free optimization variable
                 unassignVariable(optVariable);
-                
                 SNBSState = NextCandidate;
             }
             break;
@@ -307,6 +326,9 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
         
         // Compute elapsed time and subtract it from timeout
         timeout -= timer.getElapsedTime();
+        #ifndef NDEBUG
+            printf("Time left: %d ms\n", timeout);
+        #endif
         
     }
     
