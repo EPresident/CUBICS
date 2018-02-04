@@ -43,6 +43,9 @@ struct IntSNBSearcher
     int iterationsDone;
     /// LNS iterations to do
     int maxIterations;
+    #ifndef NDEBUG
+    long candidatesTested;
+    #endif
     
     /// Device-Host timer
     TimerUtils timer;
@@ -114,7 +117,7 @@ struct IntSNBSearcher
     * Find the next solution, unassigning variables when needed.
     * \return true if a solution is found, false otherwise.
     */
-    cudaDevice bool getNextSolution(long timeout);
+    cudaDevice bool getNextSolution(long long timeout);
     
     /**
     * Back up the initial domains by copying the current domain 

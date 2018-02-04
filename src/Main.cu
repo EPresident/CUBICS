@@ -50,9 +50,9 @@ int main(int argc, char * argv[])
     MemUtils::malloc(&satisfiableModel); // Must be readable by GPU
     *satisfiableModel = true;
     
-    // Max elapsed time in ms
-    long timeout = opts.timeout;
-    cout << "Timeout: " << timeout << endl ;
+    // Max elapsed time in ns
+    long long timeout = opts.timeout * 1000000;
+    cout << "Timeout: " << opts.timeout << " ms" << endl ;
     std::chrono::steady_clock::time_point startTime {std::chrono::steady_clock::now()};
     
     // Make sure the model is satisfiable, by propagating the constaints. (GPU/CPU)
@@ -92,7 +92,7 @@ int main(int argc, char * argv[])
     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
     #endif
     
-    long elapsedTime { std::chrono::duration_cast<std::chrono::milliseconds>(
+    long long elapsedTime { std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - startTime).count() };
 
     if (*satisfiableModel)
@@ -141,7 +141,7 @@ int main(int argc, char * argv[])
                elapsedTime < timeout
               )
         {
-            elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+            elapsedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
                             std::chrono::steady_clock::now() - startTime).count();
             long searcherTimeout {timeout - elapsedTime};
             // Get next solution (GPU/CPU)
@@ -176,7 +176,7 @@ int main(int argc, char * argv[])
             }
             
             // Measure time
-            elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+            elapsedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
                             std::chrono::steady_clock::now() - startTime).count();
             //cout << "Solution: " << elapsedTime << endl;
             
@@ -221,9 +221,9 @@ int main(int argc, char * argv[])
         cout << "=====UNSATISFIABLE=====" << endl;
     }
 
-    elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+    elapsedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
                             std::chrono::steady_clock::now() - startTime).count();
-    cout << "Elapsed time: " << elapsedTime << " ms" << endl;
+    cout << "Elapsed time: " << elapsedTime / 1000000000.0 << " s" << endl;
     
     // Print timeout message
     if(elapsedTime >= timeout)

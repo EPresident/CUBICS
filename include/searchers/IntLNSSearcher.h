@@ -96,7 +96,7 @@ struct IntLNSSearcher
     * Find the next solution, unassigning variables when needed.
     * \return true if a solution is found, false otherwise.
     */
-    cudaDevice bool getNextSolution(long timeout);
+    cudaDevice bool getNextSolution(long long timeout);
     
     /**
     * Back up the initial domains by copying the current domain 

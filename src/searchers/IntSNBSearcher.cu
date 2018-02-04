@@ -11,6 +11,10 @@ void IntSNBSearcher::initialize(FlatZinc::FlatZincModel* fzModel, int unassignAm
     variables = fzModel->intVariables;
     constraints = fzModel->intConstraints;
     
+    #ifndef NDEBUG
+    candidatesTested = 0;
+    #endif
+    
     this->unassignAmount = unassignAmount;
 
     BTSearcher.initialize(fzModel);
@@ -85,7 +89,7 @@ void IntSNBSearcher::deinitialize()
 * Find the next solution, backtracking when needed.
 * \return true if a solution is found, false otherwise.
 */
-cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
+cudaDevice bool IntSNBSearcher::getNextSolution(long long timeout)
 {
     bool solutionFound = false;
 
@@ -114,10 +118,10 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                     Wrappers::saveBestSolution
                         <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
                     cudaDeviceSynchronize();
-                    
                     // init cuRAND state with the given seed and no offset
                     MemUtils::malloc(&cuRANDstate);
                     curand_init(randSeed, threadIdx.x + blockIdx.x * blockDim.x, 0, cuRANDstate);
+                    cudaDeviceSynchronize();
                 #else
                     saveBestSolution();
                 #endif
@@ -126,6 +130,9 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
 
             case NewNeighborhood:
             {    
+                #ifndef NDEBUG
+                    //printf(">>>>>>>>>>>>>Next neighborhood (%d)\n", iterationsDone);
+                #endif
                 if(unassignAmount < 1)
                 {
                     return false;
@@ -151,10 +158,17 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                         int j{rand_dist(mt_rand)};
                     #endif
                     
+                    #ifndef NDEBUG
+                        //printf("%d - ",j);
+                    #endif
+                    
                     int tmp{shuffledVars[i]};
                     shuffledVars[i] = shuffledVars[j];
                     shuffledVars[j] = tmp;
                 }
+                #ifndef NDEBUG
+                    //printf("\n");
+                #endif
                 // Store the chosen variables
                 chosenVariables.clear();
                 for(int i = 0; i < unassignAmount; i += 1)
@@ -226,7 +240,7 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
             case NextCandidate:
             {
                 #ifndef NDEBUG
-                        printf("Next candidate\n");
+                    //printf("Next candidate\n");
                 #endif
                 assert(neighVarsAssigned == unassignAmount);
                 // Get the next candidate solution
@@ -270,13 +284,13 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                 {
                     // Done exploring the neighborhood
                     #ifndef NDEBUG
-                    assert(neighVarsAssigned==0);
+                    //assert(neighVarsAssigned==0);
                     #endif
                     SNBSState = NewNeighborhood;
                     ++iterationsDone;
                     
                     #ifndef NDEBUG
-                    printf("Next neighborhood (%d)\n",iterationsDone);
+                    //printf(">>>>>>>>>>>Next neighborhood (%d)\n",iterationsDone);
                     #endif
                 }
             }
@@ -284,14 +298,19 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
             case Test:
             {
                 #ifndef NDEBUG
-                    printf("Testing...");
+                    //printf("Testing...");
                 #endif
                 // Check if the generated solution is good
                 // Also need to compute the cost function!
                 // (but it should be a singleton after propagation, so...)
                 bool noEmptyDomains = propagator.propagateConstraints();
+                bool constraintsSatisfied {false};
+                if(noEmptyDomains)
+                {
+                    constraintsSatisfied = propagator.verifyConstraints();
+                }
                 
-                if (noEmptyDomains and propagator.verifyConstraints())
+                if (noEmptyDomains and constraintsSatisfied)
                 {
                     #ifndef NDEBUG
                         printf("Solution found! %d\n", iterationsDone);
@@ -311,7 +330,8 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
                 // Try another value.
                 SNBSState = FreeOptVar;
                 #ifndef NDEBUG
-                    printf(" done testing\n");
+                    ++candidatesTested;
+                    //printf(" done testing\n");
                 #endif
             }
             break;
@@ -327,7 +347,8 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
         // Compute elapsed time and subtract it from timeout
         timeout -= timer.getElapsedTime();
         #ifndef NDEBUG
-            printf("Time left: %d ms\n", timeout);
+            //assert(timer.getElapsedTime()>0);
+            //printf("Time left: %ld ns\n", timeout);
         #endif
         
     }
@@ -344,7 +365,15 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long timeout)
             constraints->parameters[optConstraint][0] = variables->domains.getMin(optVariable) - 1;
         }
     }
-
+    
+    #ifndef NDEBUG
+    // Print timeout message
+    if(timeout <= 0)
+    {
+        printf(">>> GPU Timed out! <<<\n");
+    }
+    //printf("Time left: %ld ns\n", timeout);
+    #endif
     return solutionFound;
 }
 

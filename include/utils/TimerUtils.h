@@ -6,7 +6,7 @@
 #endif
 
 /**
- * Utility for measuring time intervals (in milliseconds) for both
+ * Utility for measuring time intervals (in nanoseconds) for both
  * CPU and GPU.
  * 
  * CPU measurement is done using the std::chrono library.
@@ -38,7 +38,7 @@ struct TimerUtils
     /**
      * Calculate the elapsed time since \a startTime.
      * 
-     * \return the elapsed time in milliseconds.
+     * \return the elapsed time in nanoseconds.
     */
-    cudaDevice long getElapsedTime();
+    cudaDevice long long getElapsedTime();
 };

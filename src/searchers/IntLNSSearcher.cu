@@ -85,7 +85,7 @@ void IntLNSSearcher::deinitialize()
 * Find the next solution, backtracking when needed.
 * \return true if a solution is found, false otherwise.
 */
-cudaDevice bool IntLNSSearcher::getNextSolution(long timeout)
+cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
 {
     bool solutionFound = false;
 
