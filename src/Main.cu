@@ -14,20 +14,33 @@ using namespace std;
 
 int main(int argc, char * argv[])
 {
+    //-------------------------------------------------------------------------------
+    // Start timer
+    //-------------------------------------------------------------------------------
+    std::chrono::steady_clock::time_point startTime {std::chrono::steady_clock::now()};
+    
     IntBacktrackSearcher* backtrackSearcher;
     IntLNSSearcher* LNSSearcher;
     IntSNBSearcher* SNBSearcher;
-    
+    //-------------------------------------------------------------------------------
     // Parse command line arguments
+    //-------------------------------------------------------------------------------
     Options opts;
     opts.initialize();
     opts.parseOptions(argc, argv);
-    
+    //-------------------------------------------------------------------------------
     // Initialize FlatZinc model and printer
+    //-------------------------------------------------------------------------------
     FlatZinc::Printer printer;
     FlatZinc::FlatZincModel* fzModel = FlatZinc::parse(opts.inputFile, printer);
 
+    // Max elapsed time in ns
+    long long timeout = opts.timeout * 1000000;
+    cout << "Timeout: " << opts.timeout << " ms" << endl ;
+
+    //-------------------------------------------------------------------------------
     // Initialize searcher
+    //-------------------------------------------------------------------------------
     switch(opts.mode)
     {
         case Options::SearchMode::Backtracking:
@@ -50,12 +63,9 @@ int main(int argc, char * argv[])
     MemUtils::malloc(&satisfiableModel); // Must be readable by GPU
     *satisfiableModel = true;
     
-    // Max elapsed time in ns
-    long long timeout = opts.timeout * 1000000;
-    cout << "Timeout: " << opts.timeout << " ms" << endl ;
-    std::chrono::steady_clock::time_point startTime {std::chrono::steady_clock::now()};
-    
+    //-------------------------------------------------------------------------------
     // Make sure the model is satisfiable, by propagating the constaints. (GPU/CPU)
+    //-------------------------------------------------------------------------------
     #ifdef GPU
     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSetLimit(cudaLimitMallocHeapSize, HEAP_SIZE));
     #endif
@@ -130,12 +140,13 @@ int main(int argc, char * argv[])
         }
         onlyBestSolution = onlyBestSolution and opts.solutionsCount == 1;
         std::stringstream bestSolution;
-        
+        //-------------------------------------------------------------------------------
         /*
         * Find solutions until the search criteria are met.
         * That means finding one/n/all solutions, depending on the user
         * provided arguments.
         */
+        //-------------------------------------------------------------------------------
         while (*solutionFound and 
                (solutionCount < opts.solutionsCount or onlyBestSolution) and 
                elapsedTime < timeout
@@ -144,7 +155,9 @@ int main(int argc, char * argv[])
             elapsedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
                             std::chrono::steady_clock::now() - startTime).count();
             long searcherTimeout {timeout - elapsedTime};
+            //-------------------------------------------------------------------------------
             // Get next solution (GPU/CPU)
+            //-------------------------------------------------------------------------------
             switch(opts.mode)
             {
                 case Options::SearchMode::Backtracking:
@@ -175,10 +188,11 @@ int main(int argc, char * argv[])
                     break;
             }
             
-            // Measure time
+            //-------------------------------------------------------------------------------
+            // Measure time elapsed
+            //-------------------------------------------------------------------------------
             elapsedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
                             std::chrono::steady_clock::now() - startTime).count();
-            //cout << "Solution: " << elapsedTime << endl;
             
             if (*solutionFound)
             {
@@ -224,8 +238,9 @@ int main(int argc, char * argv[])
     elapsedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
                             std::chrono::steady_clock::now() - startTime).count();
     cout << "Elapsed time: " << elapsedTime / 1000000000.0 << " s" << endl;
-    
+    //-------------------------------------------------------------------------------
     // Print timeout message
+    //-------------------------------------------------------------------------------
     if(elapsedTime >= timeout)
     {
         cout << ">>> Timed out! <<<" << endl;
