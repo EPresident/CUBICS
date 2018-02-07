@@ -7,6 +7,7 @@
 #include <propagators/IntConstraintsPropagator.h>
 #include <searchers/IntBacktrackStack.h>
 #include <flatzinc/flatzinc.h>
+#include <utils/TimerUtils.h>
 
 struct IntBacktrackSearcher
 {
@@ -34,6 +35,9 @@ struct IntBacktrackSearcher
     * chosenValues[i] is the value assigned to chosenVariables[i].
     */
     Vector<int> chosenValues;
+    
+    /// Device-Host timer
+    TimerUtils timer;
 
     IntVariables* variables;
     IntConstraints* constraints;
@@ -71,7 +75,7 @@ struct IntBacktrackSearcher
     * Find the next solution, backtracking when needed.
     * \return true if a solution is found, false otherwise.
     */
-    cudaDevice bool getNextSolution();
+    cudaDevice bool getNextSolution(long long timeout = LONG_LONG_MAX);
 
     /**
     * Require that the optimization variable ("optVariable") take a value

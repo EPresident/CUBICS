@@ -22,6 +22,7 @@ void IntBacktrackSearcher::initialize(FlatZinc::FlatZincModel* fzModel)
 
 #ifdef GPU
     varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
+    timer.initialize();
 #endif
 
     switch (fzModel->method())
@@ -70,7 +71,7 @@ void IntBacktrackSearcher::deinitialize()
 * Find the next solution, backtracking when needed.
 * \return true if a solution is found, false otherwise.
 */
-cudaDevice bool IntBacktrackSearcher::getNextSolution()
+cudaDevice bool IntBacktrackSearcher::getNextSolution(long long timeout)
 {
     bool solutionFound = false;
     #ifndef NDEBUG
@@ -78,8 +79,11 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
         assert(backtrackingLevel < variables->count);
     #endif
 
-    while (backtrackingLevel >= 0 and (not solutionFound))
+    while (backtrackingLevel >= 0 and (not solutionFound) and timeout > 0)
     {
+        // Setup timer to compute this iteration's duration
+        timer.setStartTime();
+        
         switch (backtrackingState)
         {
             case VariableNotChosen:
@@ -204,12 +208,20 @@ cudaDevice bool IntBacktrackSearcher::getNextSolution()
             }
                 break;
         }
+        
+        // Compute elapsed time and subtract it from timeout
+        timeout -= timer.getElapsedTime();
     }
 
     // Make sure the next solution is better (for optimization problems)
     if (solutionFound and (searchType == Maximization or searchType == Minimization))
     {
         shrinkOptimizationBound();
+    }
+    
+    if(timeout <= 0)
+    {
+        printf(">>> GPU Timed out! <<<\n");
     }
 
     return solutionFound;

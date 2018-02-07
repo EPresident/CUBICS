@@ -105,7 +105,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 backupInitialDomains();
                 
                 // Find first solution
-                solutionFound = BTSearcher.getNextSolution();
+                solutionFound = BTSearcher.getNextSolution(timeout);
                 LNSState = DoUnassignment;
                 // Save solution
                 #ifdef GPU
@@ -219,7 +219,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
             case VariablesUnassigned:
             {
                 // Begin exploring the new neighborhood
-                solutionFound = BTSearcher.getNextSolution();
+                solutionFound = BTSearcher.getNextSolution(timeout);
                 if(not solutionFound)
                 {
                     // Subtree exhausted

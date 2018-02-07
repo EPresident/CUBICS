@@ -109,7 +109,7 @@ cudaDevice bool IntSNBSearcher::getNextSolution(long long timeout)
                 backupInitialDomains();
                 
                 // Find first solution (there has to be at least one)
-                solutionFound = BTSearcher.getNextSolution();
+                solutionFound = BTSearcher.getNextSolution(timeout);
                 
                 //BTSearcher.deinitialize(); // searcher no longer needed
                 SNBSState = NewNeighborhood;
