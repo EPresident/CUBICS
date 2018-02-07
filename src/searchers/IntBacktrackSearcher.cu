@@ -73,6 +73,10 @@ void IntBacktrackSearcher::deinitialize()
 cudaDevice bool IntBacktrackSearcher::getNextSolution()
 {
     bool solutionFound = false;
+    #ifndef NDEBUG
+        assert(backtrackingState < 5);
+        assert(backtrackingLevel < variables->count);
+    #endif
 
     while (backtrackingLevel >= 0 and (not solutionFound))
     {
