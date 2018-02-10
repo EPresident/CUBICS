@@ -5,7 +5,7 @@ struct Lock
 {
     int mutex;
 
-    inline void initialize()
+    cudaHostDevice inline void initialize()
     {
         mutex = 0;
     }

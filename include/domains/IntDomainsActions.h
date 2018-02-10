@@ -20,14 +20,14 @@ struct IntDomainsActions
 #endif
 
     /// Initialize the struct for "count" variables. 
-    void initialize(int count);
-    void deinitialize();
+    cudaHostDevice void initialize(int count);
+    cudaHostDevice void deinitialize();
 
     /** 
     * Add a new empty action, i.e. add room for a new element in 
     * the vectors of the struct. 
     */
-    void push();
+    cudaHostDevice void push();
 
     /** 
     * Clear the "index"-th action.

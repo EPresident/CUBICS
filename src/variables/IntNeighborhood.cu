@@ -3,17 +3,20 @@
 #include <cassert>
 #include <wrappers/Wrappers.h>
 
-cudaDevice void IntNeighborhood::initialize(int count/*, IntDomains* dom*/)
+cudaDevice void IntNeighborhood::initialize(int count)
 {
-   this->count = count;
-   //domains = dom;
-   // Init bitvector
-   neighMask.initialize(count, false);
-   // Init domains representations
-   neighRepr.initialize(count);
-   // Init map
-   map.initialize(count);
-   map.resize(count);
+    this->count = count;
+    // Init bitvector
+    neighMask.initialize(count, false);
+    // Init domains representations
+    neighRepr.initialize(count);
+    // Init map
+    map.initialize(count);
+    map.resize(count);
+    // Init events
+    events.initialize(count);
+    // init actions
+    neighActions.initialize(count);
     // get required blocks
     #ifdef GPU
     blocksRequired = KernelUtils::getBlockCount(count, DEFAULT_BLOCK_SIZE, true);
@@ -22,7 +25,6 @@ cudaDevice void IntNeighborhood::initialize(int count/*, IntDomains* dom*/)
 
 cudaDevice void IntNeighborhood::deinitialize()
 {
-    //domains.deinitialize();
     neighMask.deinitialize();
     neighRepr.deinitialize();
     for(int i = 0; i < map.size; i += 1)
@@ -30,6 +32,8 @@ cudaDevice void IntNeighborhood::deinitialize()
         map[i].deinitialize();
     }
     map.deinitialize();
+    events.deinitialize();
+    neighActions.deinitialize();
 }
 
 cudaDevice void IntNeighborhood::pushNeighbors(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr)
@@ -58,6 +62,10 @@ cudaDevice void IntNeighborhood::pushNeighbors(Vector<int>* neighbors, IntDomain
         int version = originalRepr->versions[var];
         Vector<unsigned int>* bitvector = &originalRepr->bitvectors[var];
         neighRepr.push(min, max, offset, version, bitvector);
+        // Push event
+        events.push_back(EventTypes::Changed);
+        // Push action
+        neighActions.push();
     }
     
 }

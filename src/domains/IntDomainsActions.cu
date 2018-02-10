@@ -4,7 +4,7 @@
 #include <utils/Utils.h>
 
 /// Initialize the struct for "count" variables.
-void IntDomainsActions::initialize(int count)
+cudaHostDevice void IntDomainsActions::initialize(int count)
 {
     elementsToRemove.initialize(count);
 
@@ -16,7 +16,7 @@ void IntDomainsActions::initialize(int count)
 #endif
 }
 
-void IntDomainsActions::deinitialize()
+cudaHostDevice void IntDomainsActions::deinitialize()
 {
     for (int i = 0; i < elementsToRemove.size; i += 1)
     {
@@ -36,7 +36,7 @@ void IntDomainsActions::deinitialize()
 * Add a new empty action, i.e. add room for a new element in 
 * the vectors of the struct. 
 */
-void IntDomainsActions::push()
+cudaHostDevice void IntDomainsActions::push()
 {
     elementsToRemove.resize_by_one();
     elementsToRemove.back().initialize();

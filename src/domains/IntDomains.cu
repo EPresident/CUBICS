@@ -100,8 +100,9 @@ cudaDevice void IntDomains::fixValue(int index, int value, IntNeighborhood* nbh)
     #ifndef NDEBUG
     assert(nbh->isNeighbor(index));
     #endif
-    nbh->neighRepr.keepOnly(nbh->getRepresentationIndex(index), value);
-    events[index] = EventTypes::Changed;  // FIXME? !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    int ridx {nbh->getRepresentationIndex(index)};
+    nbh->neighRepr.keepOnly(ridx, value);
+    nbh->events[ridx] = EventTypes::Changed;
 
 }
 
@@ -149,25 +150,25 @@ cudaDevice void IntDomains::updateDomain(int index, IntNeighborhood* nbh)
     unsigned int previousVersion = nbh->neighRepr.versions[ridx];
 
     // Shave off any value outside the bounds
-    nbh->neighRepr.removeAnyGreaterThan(ridx, actions.upperbounds[index]);
-    nbh->neighRepr.removeAnyLesserThan(ridx, actions.lowerbounds[index]);
+    nbh->neighRepr.removeAnyGreaterThan(ridx, nbh->neighActions.upperbounds[ridx]);
+    nbh->neighRepr.removeAnyLesserThan(ridx, nbh->neighActions.lowerbounds[ridx]);
 
     // Remove single elements
-    for (int ei = 0; ei < actions.elementsToRemove[index].size; ei += 1)
+    for (int ei = 0; ei < nbh->neighActions.elementsToRemove[ridx].size; ei += 1)
     {
-        nbh->neighRepr.remove(ridx, actions.elementsToRemove[index][ei]);
+        nbh->neighRepr.remove(ridx, nbh->neighActions.elementsToRemove[ridx][ei]);
     }
 
     // Remove the action after it's been perforned
-    actions.clear(index);
+    nbh->neighActions.clear(ridx);
 
     // Push the appropriate events
     if (previousVersion != nbh->neighRepr.versions[ridx])
     {
-        events[index] = EventTypes::Changed;
+        nbh->events[ridx] = EventTypes::Changed;
     }
     else
     {
-        events[index] = EventTypes::None;
+        nbh->events[ridx] = EventTypes::None;
     }
 }

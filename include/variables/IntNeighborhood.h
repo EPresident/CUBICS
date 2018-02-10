@@ -3,6 +3,7 @@
 #include <data_structures/Vector.h>
 #include <data_structures/BitsArray.h>
 #include <domains/IntDomainsRepresentations.h>
+#include <domains/IntDomainsActions.h>
 
 /**
 * This struct represents a neighborhood of integer variables, i.e.
@@ -10,25 +11,31 @@
 */
 struct IntNeighborhood
 {
+    enum EventTypes
+    {
+        None,
+        Changed ///< A domain has been changed
+    };
+    
     /// Number of integer variables.
     int count;
     #ifdef GPU
-    /// Blocks required to launch the kernels
+    /// Blocks required to launch the kernels with default block size
     int blocksRequired;
     #endif
-    /// Domain this neighborhood is based on
-    //IntDomains* domains;
     /// Bitmask for each variable in the domain. 1 = is a neighbor.
     BitsArray neighMask;
     /// Representations of the domains of the neighbors
     IntDomainsRepresentations neighRepr;
+    /// Domain actions of the neighbors
+    IntDomainsActions neighActions;
     /// Map from variable name (number) to its representation in \a neighRepr
     Vector<Vector<int>> map;
     /// A list of domain events (domain changed) in chronological order.
-    //Vector<int> events;
+    Vector<int> events;
 
     /// Allocate memory for \a count sized neighborhood
-    cudaDevice void initialize(int count/*, IntDomains* dom*/);
+    cudaDevice void initialize(int count);
     cudaDevice void deinitialize();
 
     /**

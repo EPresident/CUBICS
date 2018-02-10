@@ -12,7 +12,7 @@ struct IntDomains
         Changed ///< A domain has been changed
     };
 
-    /// A list of domain events (domain changed) in chronological order.
+    /// A list of domain events (domain changed) for each variable.
     Vector<int> events;
 
     IntDomainsRepresentations representations;
