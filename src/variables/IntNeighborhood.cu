@@ -1,6 +1,7 @@
 #include <variables/IntNeighborhood.h>
+#include <utils/KernelUtils.h>
 
-cudaHostDevice void IntNeighborhood::initialize(int count/*, IntDomains* dom*/)
+cudaDevice void IntNeighborhood::initialize(int count/*, IntDomains* dom*/)
 {
    this->count = count;
    //domains = dom;
@@ -11,7 +12,10 @@ cudaHostDevice void IntNeighborhood::initialize(int count/*, IntDomains* dom*/)
    // Init map
    map.initialize(count);
    map.resize(count);
-
+    // get required blocks
+    #ifdef GPU
+    blocksRequired = KernelUtils::getBlockCount(count, DEFAULT_BLOCK_SIZE, true);
+    #endif
 }
 
 cudaDevice void IntNeighborhood::deinitialize()
@@ -32,7 +36,7 @@ cudaDevice void IntNeighborhood::pushNeighbors(Vector<int>* neighbors, IntDomain
     int i = KernelUtils::getTaskIndex();
     if (i >= 0 and i < neighbors->size)
     #else
-    for (int i = 0; i < variables->count; i += 1)
+    for (int i = 0; i < neighbors->size; i += 1)
     #endif
     {
         int var = neighbors->at(i);
@@ -54,4 +58,20 @@ cudaDevice void IntNeighborhood::pushNeighbors(Vector<int>* neighbors, IntDomain
         neighRepr.push(min, max, offset, version, bitvector);
     }
     
+}
+
+cudaDevice void IntNeighborhood::getBinding(int var, int* repr)
+{
+    #ifdef GPU
+    int i = KernelUtils::getTaskIndex();
+    if (i >= 0 and i < map.size)
+    #else
+    for (int i = 0; i < map.size; i += 1)
+    #endif
+    {
+        if(map[i][0] == var)
+        {
+            *repr = map[i][1];
+        }
+    }
 }

@@ -12,6 +12,10 @@ struct IntNeighborhood
 {
     /// Number of integer variables.
     int count;
+    #ifdef GPU
+    /// Blocks required to launch the kernels
+    int blocksRequired;
+    #endif
     /// Domain this neighborhood is based on
     //IntDomains* domains;
     /// Bitmask for each variable in the domain. 1 = is a neighbor.
@@ -22,7 +26,7 @@ struct IntNeighborhood
     Vector<Vector<int>> map;
 
     /// Allocate memory for \a count sized neighborhood
-    cudaHostDevice void initialize(int count/*, IntDomains* dom*/);
+    cudaDevice void initialize(int count/*, IntDomains* dom*/);
     cudaDevice void deinitialize();
 
     /**
@@ -31,4 +35,13 @@ struct IntNeighborhood
      * \param originalRepr the representation of the original domain of the variable
      */
     cudaDevice void pushNeighbors(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr);
+    
+    /// Find which representation is for \a var and return it in \a repr
+    cudaDevice void getBinding(int var, int* repr);
+    
+    /// Return true if \a var is in the neighborhood
+    cudaDevice inline bool isNeighbor(int var)
+    {
+        return neighMask.get(var);
+    }
 };
