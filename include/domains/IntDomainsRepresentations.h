@@ -37,8 +37,8 @@ struct IntDomainsRepresentations
     Vector<Vector<unsigned int>> bitvectors;
 
     /// Initialize the domain representations for "count" variables.
-    void initialize(int count);
-    void deinitialize();
+    cudaHostDevice void initialize(int count);
+    cudaHostDevice void deinitialize();
 
     /** 
     * Add the interval ["min","max"] to a new domain (for a new variable), 
