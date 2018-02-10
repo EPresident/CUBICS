@@ -2,6 +2,7 @@
 
 #include <domains/IntDomainsRepresentations.h>
 #include <domains/IntDomainsActions.h>
+#include <variables/IntNeighborhood.h>
 
 struct IntDomains
 {
@@ -28,11 +29,13 @@ struct IntDomains
     {
         return representations.isEmpty(index);
     }
+    cudaDevice bool isEmpty(int index, IntNeighborhood* nbh);
 
     cudaDevice inline bool isSingleton(int index)
     {
         return representations.isSingleton(index);
     }
+    cudaDevice bool isSingleton(int index, IntNeighborhood* nbh);
 
     /**
     * Get an upper bound to the cardinality of the domain.
@@ -43,19 +46,23 @@ struct IntDomains
     {
         return representations.getApproximateCardinality(index);
     }
+    cudaDevice unsigned int getApproximateCardinality(int index, IntNeighborhood* nbh);
 
     cudaHostDevice inline int getMin(int index)
     {
         return representations.minimums[index];
     }
+    cudaDevice int getMin(int index, IntNeighborhood* nbh);
 
     cudaDevice inline int getMax(int index)
     {
         return representations.maximums[index];
     }
+    cudaDevice int getMax(int index, IntNeighborhood* nbh);
 
     /// Reduce the domain on the "index"-th variable to "value" (singleton).
     cudaDevice void fixValue(int index, int value);
+    cudaDevice void fixValue(int index, int value, IntNeighborhood* nbh);
 
     /**
     * Perform the domain reduction actions pertaining the "index"-th 
@@ -63,4 +70,5 @@ struct IntDomains
     * Values outside the bounds and inside the "remove list" are dropped.
     */
     cudaDevice void updateDomain(int index);
+    cudaDevice void updateDomain(int index, IntNeighborhood* nbh);
 };

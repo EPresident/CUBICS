@@ -24,6 +24,8 @@ struct IntNeighborhood
     IntDomainsRepresentations neighRepr;
     /// Map from variable name (number) to its representation in \a neighRepr
     Vector<Vector<int>> map;
+    /// A list of domain events (domain changed) in chronological order.
+    //Vector<int> events;
 
     /// Allocate memory for \a count sized neighborhood
     cudaDevice void initialize(int count/*, IntDomains* dom*/);
