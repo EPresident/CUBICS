@@ -1,5 +1,7 @@
 #include <variables/IntNeighborhood.h>
-#include <utils/KernelUtils.h>
+#include <utils/Utils.h>
+#include <cassert>
+#include <wrappers/Wrappers.h>
 
 cudaDevice void IntNeighborhood::initialize(int count/*, IntDomains* dom*/)
 {
@@ -74,4 +76,16 @@ cudaDevice void IntNeighborhood::getBinding(int var, int* repr)
             *repr = map[i][1];
         }
     }
+}
+
+cudaDevice int IntNeighborhood::getRepresentationIndex(int var)
+{
+    int* reprIdx;
+    MemUtils::malloc(&reprIdx);
+    *reprIdx = -1;
+    Wrappers::getBinding<<<blocksRequired, DEFAULT_BLOCK_SIZE>>>(this, var, reprIdx);
+    #ifndef NDEBUG
+    assert(*reprIdx >= 0);
+    #endif
+    return *reprIdx;
 }

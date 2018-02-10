@@ -2,7 +2,7 @@
 
 #include <data_structures/Vector.h>
 #include <data_structures/BitsArray.h>
-#include <domains/IntDomains.h>
+#include <domains/IntDomainsRepresentations.h>
 
 /**
 * This struct represents a neighborhood of integer variables, i.e.
@@ -36,8 +36,10 @@ struct IntNeighborhood
      */
     cudaDevice void pushNeighbors(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr);
     
-    /// Find which representation is for \a var and return it in \a repr
+    /// Find which representation is for \a var and return it in \a repr (used for kernel)
     cudaDevice void getBinding(int var, int* repr);
+    /// Find which representation is for \a var (used as a normal function)
+    cudaDevice int getRepresentationIndex(int var);
     
     /// Return true if \a var is in the neighborhood
     cudaDevice inline bool isNeighbor(int var)

@@ -99,4 +99,17 @@ cudaGlobal void Wrappers::checkSatisfiedConstraints(IntConstraintsPropagator* pr
 {
     propagator->checkSatisfiedConstraints();
 }
+
+//----------------------
+// Integer neighborhoods
+//----------------------
+cudaGlobal void pushNeighbors(IntNeighborhood* nbh, Vector<int>* neighbors, IntDomainsRepresentations* originalRepr)
+{
+    nbh->pushNeighbors(neighbors, originalRepr);
+}
+
+cudaGlobal void getRepresentationIndex(IntNeighborhood* nbh, int variable, int* reprIdx)
+{
+    nbh->getBinding(variable, reprIdx);
+}
 #endif 
