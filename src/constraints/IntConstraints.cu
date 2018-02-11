@@ -70,6 +70,35 @@ cudaDevice void IntConstraints::propagate(int index, IntVariables* variables)
             LogUtils::error(__PRETTY_FUNCTION__, "Invalid constraint type");
     }
 }
+cudaDevice void IntConstraints::propagate(int index, IntVariables* variables, IntNeighborhood* nbh)
+{
+    switch (types[index])
+    {
+        case IntLinNe:
+            IntLinNe::propagate(this, index, variables, nbh);
+            break;
+        case IntLinLe:
+            IntLinLe::propagate(this, index, variables, nbh);
+            break;
+        case IntOptLb:
+            IntOptLb::propagate(this, index, variables, nbh);
+            break;
+        case IntOptUb:
+            IntOptUb::propagate(this, index, variables, nbh);
+            break;
+        case IntLinEq:
+            IntLinEq::propagate(this, index, variables, nbh);
+            break;
+        case IntAbs:
+            IntAbs::propagate(this, index, variables, nbh);
+            break;
+        case IntTimes:
+            IntTimes::propagate(this, index, variables, nbh);
+            break;
+        default:
+            LogUtils::error(__PRETTY_FUNCTION__, "Invalid constraint type");
+    }
+}
 
 /**
 * Returns true if the "index"-th constraint is satisfied.
@@ -92,6 +121,29 @@ cudaDevice bool IntConstraints::satisfied(int index, IntVariables* variables)
             return IntAbs::satisfied(this, index, variables);
         case IntTimes:
             return IntTimes::satisfied(this, index, variables);
+        default:
+            LogUtils::error(__PRETTY_FUNCTION__, "Invalid constraint type");
+            return false;
+    }
+}
+cudaDevice bool IntConstraints::satisfied(int index, IntVariables* variables, IntNeighborhood* nbh)
+{
+    switch (types[index])
+    {
+        case IntLinNe:
+            return IntLinNe::satisfied(this, index, variables, nbh);
+        case IntLinLe:
+            return IntLinLe::satisfied(this, index, variables, nbh);
+        case IntOptLb:
+            return IntOptLb::satisfied(this, index, variables, nbh);
+        case IntOptUb:
+            return IntOptUb::satisfied(this, index, variables, nbh);
+        case IntLinEq:
+            return IntLinEq::satisfied(this, index, variables, nbh);
+        case IntAbs:
+            return IntAbs::satisfied(this, index, variables, nbh);
+        case IntTimes:
+            return IntTimes::satisfied(this, index, variables, nbh);
         default:
             LogUtils::error(__PRETTY_FUNCTION__, "Invalid constraint type");
             return false;

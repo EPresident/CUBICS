@@ -2,6 +2,7 @@
 
 #include <data_structures/Vector.h>
 #include <variables/IntVariables.h>
+#include <variables/IntNeighborhood.h>
 
 #include <constraints/IntLinNe.h>
 #include <constraints/IntLinLe.h>
@@ -50,6 +51,7 @@ struct IntConstraints
     * is satisfied.
     */
     cudaDevice void propagate(int index, IntVariables* variables);
+    cudaDevice void propagate(int index, IntVariables* variables, IntNeighborhood* nbh);
     /**
     * \return true if :
     *  - All variables of the constraint are ground, and the constraint is satisfied.
@@ -59,4 +61,5 @@ struct IntConstraints
     * inside \a propagate().
     */
     cudaDevice bool satisfied(int index, IntVariables* variables);
+    cudaDevice bool satisfied(int index, IntVariables* variables, IntNeighborhood* nbh);
 };
