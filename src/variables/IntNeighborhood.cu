@@ -19,7 +19,7 @@ cudaDevice void IntNeighborhood::initialize(int count)
     neighActions.initialize(count);
     // get required blocks
     #ifdef GPU
-    blocksRequired = KernelUtils::getBlockCount(count, DEFAULT_BLOCK_SIZE, true);
+    variablesBlocks = KernelUtils::getBlockCount(count, DEFAULT_BLOCK_SIZE, true);
     #endif
 }
 
@@ -91,7 +91,7 @@ cudaDevice int IntNeighborhood::getRepresentationIndex(int var)
     int* reprIdx;
     MemUtils::malloc(&reprIdx);
     *reprIdx = -1;
-    Wrappers::getBinding<<<blocksRequired, DEFAULT_BLOCK_SIZE>>>(this, var, reprIdx);
+    Wrappers::getBinding<<<variablesBlocks, DEFAULT_BLOCK_SIZE>>>(this, var, reprIdx);
     #ifndef NDEBUG
     assert(*reprIdx >= 0);
     #endif

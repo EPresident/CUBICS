@@ -16,12 +16,14 @@ struct IntNeighborhood
         None,
         Changed ///< A domain has been changed
     };
-    
+    //-----------------------------------------------------------
+    // Domains+variables stuff
+    //-----------------------------------------------------------
     /// Number of integer variables.
     int count;
     #ifdef GPU
     /// Blocks required to launch the kernels with default block size
-    int blocksRequired;
+    int variablesBlocks;
     #endif
     /// Bitmask for each variable in the domain. 1 = is a neighbor.
     BitsArray neighMask;
@@ -33,6 +35,16 @@ struct IntNeighborhood
     Vector<Vector<int>> map;
     /// A list of domain events (domain changed) in chronological order.
     Vector<int> events;
+    //-----------------------------------------------------------
+    // Propagation stuff
+    //-----------------------------------------------------------
+    /// Indicates if the i-th constraint has been propagated or not
+    Vector<bool> constraintToPropagate;
+    /// true if at least one domain has become empty
+    bool someEmptyDomain;
+    /// true if at least one constraint has to be (re)propagated
+    bool someConstraintsToPropagate;
+    bool allConstraintsSatisfied;
 
     /// Allocate memory for \a count sized neighborhood
     cudaDevice void initialize(int count);
@@ -53,6 +65,7 @@ struct IntNeighborhood
     /// Return true if \a var is in the neighborhood
     cudaDevice inline bool isNeighbor(int var)
     {
+        assert(var > 0 and var < count);
         return neighMask.get(var);
     }
 };

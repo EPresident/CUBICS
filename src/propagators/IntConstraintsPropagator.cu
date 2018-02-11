@@ -86,6 +86,69 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints()
 
     return (not someEmptyDomain);
 }
+cudaDevice bool IntConstraintsPropagator::propagateConstraints(IntNeighborhood* nbh)
+{
+    nbh->someEmptyDomain = false;
+    nbh->someConstraintsToPropagate = false;
+#ifdef GPU
+    Wrappers::setConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+    cudaDeviceSynchronize();
+#else
+    setConstraintsToPropagate(nbh);
+#endif
+
+    while (nbh->someConstraintsToPropagate and (not nbh->someEmptyDomain))
+    {
+#ifdef GPU
+        Wrappers::collectActions<<<constraintsBlockCountDivergence, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+        cudaDeviceSynchronize();
+#else
+        collectActions(nbh);
+#endif
+
+#ifdef GPU
+        Wrappers::clearDomainsEvents<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+        cudaDeviceSynchronize();
+#else
+        clearDomainsEvents(nbh);
+#endif
+
+#ifdef GPU
+        Wrappers::updateDomains<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+        cudaDeviceSynchronize();
+#else
+        updateDomains(nbh);
+#endif
+
+#ifdef GPU
+        Wrappers::clearConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+        cudaDeviceSynchronize();
+#else
+        clearConstraintsToPropagate(nbh);
+#endif
+
+        nbh->someEmptyDomain = false;
+#ifdef GPU
+        Wrappers::checkEmptyDomains<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+        cudaDeviceSynchronize();
+#else
+        checkEmptyDomains(nbh);
+#endif
+
+        if (not nbh->someEmptyDomain)
+        {
+            nbh->someConstraintsToPropagate = false;
+#ifdef GPU
+            Wrappers::setConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+            cudaDeviceSynchronize();
+#else
+            setConstraintsToPropagate(nbh);
+#endif
+        }
+    }
+
+    return (not nbh->someEmptyDomain);
+}
 
 /**
 * Check if any constraint needs to be propagated, updating the appropriate
@@ -115,6 +178,27 @@ cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
         }
     }
 }
+cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate(IntNeighborhood* nbh)
+{
+#ifdef GPU
+    int ci = KernelUtils::getTaskIndex();
+    if (ci >= 0 and ci < constraints->count)
+#else
+    for (int ci = 0; ci < constraints->count; ci += 1)
+#endif
+    {
+        for (int vi = 0; vi < constraints->variables[ci].size  and nbh->isNeighbor(vi); vi += 1)
+        {
+            int event = nbh->events[constraints->variables[ci][vi]];
+
+            if (event == IntDomains::EventTypes::Changed)
+            {
+                nbh->constraintToPropagate[ci] = true;
+                nbh->someConstraintsToPropagate = true;
+            }
+        }
+    }
+}
 
 /**
 * Propagates all constraints flagged in "constraintToPropagate", and flips
@@ -136,6 +220,22 @@ cudaDevice void IntConstraintsPropagator::collectActions()
         }
     }
 }
+cudaDevice void IntConstraintsPropagator::collectActions(IntNeighborhood* nbh)
+{
+#ifdef GPU
+    int ci = KernelUtils::getTaskIndex(true);
+    if (ci >= 0 and ci < constraints->count)
+#else
+    for (int ci = 0; ci < constraints->count; ci += 1)
+#endif
+    {
+        if (nbh->constraintToPropagate[ci])
+        {
+            constraints->propagate(ci, variables, nbh);
+            nbh->constraintToPropagate[ci] = false;
+        }
+    }
+}
 
 /** 
 * Clears the domain events list.
@@ -151,6 +251,18 @@ cudaDevice void IntConstraintsPropagator::clearDomainsEvents()
 #endif
     {
         variables->domains.events[vi] = IntDomains::EventTypes::None;
+    }
+}
+cudaDevice void IntConstraintsPropagator::clearDomainsEvents(IntNeighborhood* nbh)
+{
+#ifdef GPU
+    int vi = KernelUtils::getTaskIndex();
+    if (vi >= 0 and vi < variables->count and nbh->isNeighbor(vi))
+#else
+    for (int vi = 0; vi < variables->count and nbh->isNeighbor(vi); vi += 1)
+#endif
+    {
+        nbh->events[nbh->getRepresentationIndex(vi)] = IntDomains::EventTypes::None;
     }
 }
 
@@ -170,6 +282,18 @@ cudaDevice void IntConstraintsPropagator::updateDomains()
         variables->domains.updateDomain(vi);
     }
 }
+cudaDevice void IntConstraintsPropagator::updateDomains(IntNeighborhood* nbh)
+{
+#ifdef GPU
+    int vi = KernelUtils::getTaskIndex();
+    if (vi >= 0 and vi < variables->count and nbh->isNeighbor(vi))
+#else
+    for (int vi = 0; vi < variables->count and nbh->isNeighbor(vi); vi += 1)
+#endif
+    {
+        variables->domains.updateDomain(vi, nbh);
+    }
+}
 
 /// Clears the "constraintToPropagate" vector.
 cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
@@ -182,6 +306,18 @@ cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
 #endif
     {
         constraintToPropagate[ci] = false;
+    }
+}
+cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate(IntNeighborhood* nbh)
+{
+#if defined(GPU) && defined (__CUDA_ARCH__)
+    int ci = KernelUtils::getTaskIndex();
+    if (ci >= 0 and ci < constraints->count)
+#else
+    for (int ci = 0; ci < constraints->count; ci += 1)
+#endif
+    {
+        nbh->constraintToPropagate[ci] = false;
     }
 }
 
@@ -201,6 +337,21 @@ cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
         }
     }
 }
+cudaDevice void IntConstraintsPropagator::checkEmptyDomains(IntNeighborhood* nbh)
+{
+#ifdef GPU
+    int vi = KernelUtils::getTaskIndex();
+    if (vi >= 0 and vi < variables->count)
+#else
+    for (int vi = 0; vi < variables->count; vi += 1)
+#endif
+    {
+        if (nbh->isNeighbor(vi) and variables->domains.isEmpty(vi, nbh))
+        {
+            nbh->someEmptyDomain = true;
+        }
+    }
+}
 
 /// \return true if all constraints are satisfied.
 cudaDevice bool IntConstraintsPropagator::verifyConstraints()
@@ -214,6 +365,18 @@ cudaDevice bool IntConstraintsPropagator::verifyConstraints()
 #endif
 
     return allConstraintsSatisfied;
+}
+cudaDevice bool IntConstraintsPropagator::verifyConstraints(IntNeighborhood* nbh)
+{
+    nbh->allConstraintsSatisfied = true;
+#ifdef GPU
+    Wrappers::checkSatisfiedConstraints<<<constraintsBlockCountDivergence, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+    cudaDeviceSynchronize();
+#else
+    checkSatisfiedConstraints(nbh);
+#endif
+
+    return nbh->allConstraintsSatisfied;
 }
 
 /// Updates the "allConstraintsSatisfied" flag, scanning all constraints.
@@ -229,6 +392,21 @@ cudaDevice void IntConstraintsPropagator::checkSatisfiedConstraints()
         if (not constraints->satisfied(ci, variables))
         {
             allConstraintsSatisfied = false;
+        }
+    }
+}
+cudaDevice void IntConstraintsPropagator::checkSatisfiedConstraints(IntNeighborhood* nbh)
+{
+#ifdef GPU
+    int ci = KernelUtils::getTaskIndex(true);
+    if (ci >= 0 and ci < constraints->count)
+#else
+    for (int ci = 0; ci < constraints->count; ci += 1)
+#endif
+    {
+        if (not constraints->satisfied(ci, variables, nbh))
+        {
+            nbh->allConstraintsSatisfied = false;
         }
     }
 }
