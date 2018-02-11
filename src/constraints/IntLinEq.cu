@@ -80,16 +80,22 @@ cudaDevice void IntLinEq::propagate(IntConstraints* constraints, int index, IntV
     {
         int variableIndex = constraintVariables->at(i);
         int variableCoefficient = constraintParameters->at(i);
-
+        // Index in the neighborhood
+        int neighVarIndex = -1;
+        if(nbh->isNeighbor(variableIndex))
+        {
+            neighVarIndex = nbh->getRepresentationIndex(variableIndex);
+        }
+        
         if (variableCoefficient > 0)
         {
-            sumPosCoeffLowValue += variableCoefficient * variables->domains.getMin(variableIndex, nbh);
-            sumPosCoeffHighValue += variableCoefficient * variables->domains.getMax(variableIndex, nbh);
+            sumPosCoeffLowValue += variableCoefficient * variables->domains.getMin(variableIndex, nbh, neighVarIndex);
+            sumPosCoeffHighValue += variableCoefficient * variables->domains.getMax(variableIndex, nbh, neighVarIndex);
         }
         else
         {
-            sumNegCoeffLowValue += (-variableCoefficient) * variables->domains.getMin(variableIndex, nbh);
-            sumNegCoeffHighValue += (-variableCoefficient) * variables->domains.getMax(variableIndex, nbh);
+            sumNegCoeffLowValue += (-variableCoefficient) * variables->domains.getMin(variableIndex, nbh, neighVarIndex);
+            sumNegCoeffHighValue += (-variableCoefficient) * variables->domains.getMax(variableIndex, nbh, neighVarIndex);
         }
     }
 
@@ -105,7 +111,7 @@ cudaDevice void IntLinEq::propagate(IntConstraints* constraints, int index, IntV
             neighVarIndex = nbh->getRepresentationIndex(variableIndex);
         }
 
-        if (variables->domains.isSingleton(variableIndex, nbh))
+        if (variables->domains.isSingleton(variableIndex, nbh, neighVarIndex))
         {
             continue;
         }
