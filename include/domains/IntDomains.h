@@ -29,13 +29,13 @@ struct IntDomains
     {
         return representations.isEmpty(index);
     }
-    cudaDevice bool isEmpty(int index, IntNeighborhood* nbh);
+    cudaDevice bool isEmpty(int index, IntNeighborhood* nbh, int reprIdx = -1);
 
     cudaDevice inline bool isSingleton(int index)
     {
         return representations.isSingleton(index);
     }
-    cudaDevice bool isSingleton(int index, IntNeighborhood* nbh);
+    cudaDevice bool isSingleton(int index, IntNeighborhood* nbh, int reprIdx = -1);
 
     /**
     * Get an upper bound to the cardinality of the domain.
@@ -46,19 +46,19 @@ struct IntDomains
     {
         return representations.getApproximateCardinality(index);
     }
-    cudaDevice unsigned int getApproximateCardinality(int index, IntNeighborhood* nbh);
+    cudaDevice unsigned int getApproximateCardinality(int index, IntNeighborhood* nbh, int reprIdx = -1);
 
     cudaHostDevice inline int getMin(int index)
     {
         return representations.minimums[index];
     }
-    cudaDevice int getMin(int index, IntNeighborhood* nbh);
+    cudaDevice int getMin(int index, IntNeighborhood* nbh, int reprIdx = -1);
 
     cudaDevice inline int getMax(int index)
     {
         return representations.maximums[index];
     }
-    cudaDevice int getMax(int index, IntNeighborhood* nbh);
+    cudaDevice int getMax(int index, IntNeighborhood* nbh, int reprIdx = -1);
 
     /// Reduce the domain on the "index"-th variable to "value" (singleton).
     cudaDevice void fixValue(int index, int value);

@@ -26,8 +26,12 @@ void IntDomains::push(int min, int max)
     actions.push();
 }
 
-cudaDevice bool IntDomains::isEmpty(int index, IntNeighborhood* nbh)
+cudaDevice bool IntDomains::isEmpty(int index, IntNeighborhood* nbh, int reprIdx)
 {
+    if(reprIdx > 0)
+    {
+        return nbh->neighRepr.isEmpty(reprIdx);
+    }
     if(nbh->isNeighbor(index))
     {
         return nbh->neighRepr.isEmpty(nbh->getRepresentationIndex(index));
@@ -38,8 +42,12 @@ cudaDevice bool IntDomains::isEmpty(int index, IntNeighborhood* nbh)
     }
 }
 
-cudaDevice bool IntDomains::isSingleton(int index, IntNeighborhood* nbh)
+cudaDevice bool IntDomains::isSingleton(int index, IntNeighborhood* nbh, int reprIdx)
 {
+    if(reprIdx > 0)
+    {
+        return nbh->neighRepr.isSingleton(reprIdx);
+    }
     if(nbh->isNeighbor(index))
     {
         return nbh->neighRepr.isSingleton(nbh->getRepresentationIndex(index));
@@ -50,8 +58,12 @@ cudaDevice bool IntDomains::isSingleton(int index, IntNeighborhood* nbh)
     }
 }
 
-cudaDevice unsigned int IntDomains::getApproximateCardinality(int index, IntNeighborhood* nbh)
+cudaDevice unsigned int IntDomains::getApproximateCardinality(int index, IntNeighborhood* nbh, int reprIdx)
 {
+    if(reprIdx > 0)
+    {
+        return nbh->neighRepr.getApproximateCardinality(reprIdx);
+    }
     if(nbh->isNeighbor(index))
     {
         return nbh->neighRepr.getApproximateCardinality(nbh->getRepresentationIndex(index));
@@ -62,8 +74,12 @@ cudaDevice unsigned int IntDomains::getApproximateCardinality(int index, IntNeig
     }
 }
 
-cudaDevice int IntDomains::getMin(int index, IntNeighborhood* nbh)
+cudaDevice int IntDomains::getMin(int index, IntNeighborhood* nbh, int reprIdx)
 {
+    if(reprIdx > 0)
+    {
+        return nbh->neighRepr.minimums[reprIdx];
+    }
     if(nbh->isNeighbor(index))
     {
         return nbh->neighRepr.minimums[nbh->getRepresentationIndex(index)];
@@ -74,8 +90,12 @@ cudaDevice int IntDomains::getMin(int index, IntNeighborhood* nbh)
     }
 }
 
-cudaDevice int IntDomains::getMax(int index, IntNeighborhood* nbh)
+cudaDevice int IntDomains::getMax(int index, IntNeighborhood* nbh, int reprIdx)
 {
+    if(reprIdx > 0)
+    {
+        return nbh->neighRepr.maximums[reprIdx];
+    }
     if(nbh->isNeighbor(index))
     {
         return nbh->neighRepr.maximums[nbh->getRepresentationIndex(index)];
