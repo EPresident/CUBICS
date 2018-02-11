@@ -4,6 +4,7 @@
 
 struct IntConstraints;
 struct IntVariables;
+struct IntNeighborhood;
 
 namespace IntOptUb
 {

@@ -13,7 +13,7 @@ cudaDevice void IntOptUb::propagate(IntConstraints* constraints, int index, IntV
     Vector<int>* constraintVariables = &constraints->variables[index];
     Vector<int>* constraintParameters = &constraints->parameters[index];
 
-    nbh->neighActions.removeAnyGreaterThan(getRepresentationIndex(constraintVariables->at(0)), constraintParameters->at(0));
+    nbh->neighActions.removeAnyGreaterThan(nbh->getRepresentationIndex(constraintVariables->at(0)), constraintParameters->at(0));
 }
 
 cudaDevice bool IntOptUb::satisfied(IntConstraints* constraints, int index, IntVariables* variables)
