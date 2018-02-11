@@ -36,6 +36,15 @@ namespace Wrappers
     cudaGlobal void checkEmptyDomains(IntConstraintsPropagator* propagator);
     cudaGlobal void checkSatisfiedConstraints(IntConstraintsPropagator* propagator);
     
+    cudaGlobal void propagateConstraints(IntConstraintsPropagator* propagator, IntNeighborhood* nbh, bool* satisfiableModel);
+    cudaGlobal void setConstraintsToPropagate(IntConstraintsPropagator* propagator, IntNeighborhood* nbh);
+    cudaGlobal void collectActions(IntConstraintsPropagator* propagator, IntNeighborhood* nbh);
+    cudaGlobal void clearDomainsEvents(IntConstraintsPropagator* propagator, IntNeighborhood* nbh);
+    cudaGlobal void updateDomains(IntConstraintsPropagator* propagator, IntNeighborhood* nbh);
+    cudaGlobal void clearConstraintsToPropagate(IntConstraintsPropagator* propagator, IntNeighborhood* nbh);
+    cudaGlobal void checkEmptyDomains(IntConstraintsPropagator* propagator, IntNeighborhood* nbh);
+    cudaGlobal void checkSatisfiedConstraints(IntConstraintsPropagator* propagator, IntNeighborhood* nbh);
+    
     // Int neighborhoods
     cudaGlobal void pushNeighbors(IntNeighborhood* nbh, Vector<int>* neighbors, IntDomainsRepresentations* originalRepr);
     cudaGlobal void getBinding(IntNeighborhood* nbh, int variable, int* reprIdx);

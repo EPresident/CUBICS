@@ -58,8 +58,9 @@ cudaGlobal void Wrappers::restoreBestSolution(IntSNBSearcher* SNBSearcher)
 {
     SNBSearcher->restoreBestSolution();
 }
-
+//----------------------------------------------
 //Integer constraints propagator
+//----------------------------------------------
 cudaGlobal void Wrappers::propagateConstraints(IntConstraintsPropagator* propagator, bool* satisfiableModel)
 {
     *satisfiableModel = propagator->propagateConstraints();
@@ -98,6 +99,46 @@ cudaGlobal void Wrappers::checkEmptyDomains(IntConstraintsPropagator* propagator
 cudaGlobal void Wrappers::checkSatisfiedConstraints(IntConstraintsPropagator* propagator)
 {
     propagator->checkSatisfiedConstraints();
+}
+
+cudaGlobal void Wrappers::propagateConstraints(IntConstraintsPropagator* propagator, IntNeighborhood* nbh, bool* satisfiableModel)
+{
+    *satisfiableModel = propagator->propagateConstraints(nbh);
+}
+
+cudaGlobal void Wrappers::setConstraintsToPropagate(IntConstraintsPropagator* propagator, IntNeighborhood* nbh)
+{
+    propagator->setConstraintsToPropagate(nbh);
+}
+
+cudaGlobal void Wrappers::collectActions(IntConstraintsPropagator* propagator, IntNeighborhood* nbh)
+{
+    propagator->collectActions(nbh);
+}
+
+cudaGlobal void Wrappers::clearDomainsEvents(IntConstraintsPropagator* propagator, IntNeighborhood* nbh)
+{
+    propagator->clearDomainsEvents(nbh);
+}
+
+cudaGlobal void Wrappers::updateDomains(IntConstraintsPropagator* propagator, IntNeighborhood* nbh)
+{
+    propagator->updateDomains(nbh);
+}
+
+cudaGlobal void Wrappers::clearConstraintsToPropagate(IntConstraintsPropagator* propagator, IntNeighborhood* nbh)
+{
+    propagator->clearConstraintsToPropagate(nbh);
+}
+
+cudaGlobal void Wrappers::checkEmptyDomains(IntConstraintsPropagator* propagator, IntNeighborhood* nbh)
+{
+    propagator->checkEmptyDomains(nbh);
+}
+
+cudaGlobal void Wrappers::checkSatisfiedConstraints(IntConstraintsPropagator* propagator, IntNeighborhood* nbh)
+{
+    propagator->checkSatisfiedConstraints(nbh);
 }
 
 //----------------------
