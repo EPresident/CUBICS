@@ -156,10 +156,10 @@ int main(int argc, char * argv[])
             {
                 case Options::SearchMode::Backtracking:
                     #ifdef GPU
-                    Wrappers::getNextSolution<<<1, 1>>>(backtrackSearcher, solutionFound);
+                    Wrappers::getNextSolution<<<1, 1>>>(backtrackSearcher, solutionFound, searcherTimeout);
                     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
                     #else
-                    solutionFound = backtrackSearcher->getNextSolution();
+                    solutionFound = backtrackSearcher->getNextSolution(searcherTimeout);
                     #endif
                     break;
 
