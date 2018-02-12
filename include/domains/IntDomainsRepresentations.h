@@ -55,9 +55,9 @@ struct IntDomainsRepresentations
     * \param bitvector a bitvector indicating which values are to be in the domain;
     * \see IntDomainsRepresentations::bitvectors
     */
-    cudaDevice void push(int min, int max, int offset, unsigned int version, Vector<unsigned int>* bitvector);
+    cudaHostDevice void push(int min, int max, int offset, unsigned int version, Vector<unsigned int>* bitvector);
     /// Remove the last representation added.
-    cudaDevice void pop();
+    cudaHostDevice void pop();
 
     /** 
     * Get the index of the bitvector representing the interval which

@@ -66,7 +66,7 @@ void IntDomainsRepresentations::push(int min, int max)
 * \param bitvector a bitvector indicating which values are to be in the domain;
 * \see IntDomainsRepresentations::bitvectors
 */
-cudaDevice void IntDomainsRepresentations::push(int min, int max, int offset, unsigned int version, Vector<unsigned int>* bitvector)
+cudaHostDevice void IntDomainsRepresentations::push(int min, int max, int offset, unsigned int version, Vector<unsigned int>* bitvector)
 {
     minimums.push_back(min);
     maximums.push_back(max);
@@ -77,7 +77,7 @@ cudaDevice void IntDomainsRepresentations::push(int min, int max, int offset, un
 }
 
 /// Remove the last representation added.
-cudaDevice void IntDomainsRepresentations::pop()
+cudaHostDevice void IntDomainsRepresentations::pop()
 {
     minimums.pop_back();
     maximums.pop_back();
