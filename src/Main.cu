@@ -81,21 +81,15 @@ int main(int argc, char * argv[])
             break;
 
         case Options::SearchMode::LNS:
-            #ifdef GPU
-            Wrappers::propagateConstraints<<<1, 1>>>(&LNSSearcher->BTSearcher.
-                propagator, satisfiableModel);
-            #else
-            *satisfiableModel = LNSSearcher->BTSearcher->propagator.propagateConstraints();
-            #endif
-            break;
-        
         case Options::SearchMode::SNBS:
+            IntConstraintsPropagator tempProp;
+            tempProp.initialize(fzModel->intVariables, fzModel->intConstraints);
             #ifdef GPU
-            Wrappers::propagateConstraints<<<1, 1>>>(&SNBSearcher->
-                propagator, satisfiableModel);
+            Wrappers::propagateConstraints<<<1, 1>>>(&tempProp, satisfiableModel);
             #else
-            *satisfiableModel = SNBSearcher->propagator.propagateConstraints();
+            *satisfiableModel = tempProp.propagateConstraints();
             #endif
+            tempProp.deinitialize();
             break;
     }
     #ifdef GPU
