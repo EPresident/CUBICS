@@ -91,9 +91,14 @@ cudaDevice int IntNeighborhood::getRepresentationIndex(int var)
     int* reprIdx;
     MemUtils::malloc(&reprIdx);
     *reprIdx = -1;
-    Wrappers::getBinding<<<variablesBlocks, DEFAULT_BLOCK_SIZE>>>(this, var, reprIdx);
+    #ifdef GPU
+        Wrappers::getBinding<<<variablesBlocks, DEFAULT_BLOCK_SIZE>>>(this, var, reprIdx);
+        cudaDeviceSynchronize();
+    #else
+        getBinding(var, reprIdx);
+    #endif
     #ifndef NDEBUG
-    assert(*reprIdx >= 0);
+        assert(*reprIdx >= 0);
     #endif
     return *reprIdx;
 }
