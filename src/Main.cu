@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <chrono>
+#include <random>
 
 #include <utils/Utils.h>
 #include <flatzinc/flatzinc.h>
@@ -37,6 +38,9 @@ int main(int argc, char * argv[])
     // Max elapsed time in ns
     long long timeout = opts.timeout * 1000000;
     cout << "Timeout: " << opts.timeout << " ms" << endl ;
+
+    // Number of neighborhoods processed in parallel
+    int neighborhoodsAmount = 4;
 
     //-------------------------------------------------------------------------------
     // Initialize searcher
@@ -95,6 +99,82 @@ int main(int argc, char * argv[])
     #ifdef GPU
     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
     #endif
+    //-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    /*
+    * LNS & Co. only: backup original domains after the first propagation
+    */
+    //-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    if(opts.mode == Options::SearchMode::LNS or opts.mode == Options::SearchMode::SNBS)
+    {
+        IntDomainsRepresentations* originalDomains;
+        MemUtils::malloc(&originalDomains);
+        int varCount {fzModel->intVariables->count};
+        originalDomains->initialize(varCount);
+        IntDomainsRepresentations* intDomRepr  = &fzModel->intVariables->domains.representations;
+        for (int vi = 0; vi < varCount; vi += 1)
+        {   
+            int min = intDomRepr->minimums[vi];
+            int max = intDomRepr->maximums[vi];
+            int offset = intDomRepr->offsets[vi];
+            int version = intDomRepr->versions[vi];
+            Vector<unsigned int>* bitvector = &intDomRepr->bitvectors[vi];
+            originalDomains->push(min, max, offset, version, bitvector);
+        }
+        if(opts.mode == Options::SearchMode::LNS)
+        {
+            LNSSearcher->originalDomains = originalDomains;
+        }
+        else
+        {
+            //SNBSearcher->originalDomains = originalDomains;
+        }
+    }
+    
+    //-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    /*
+    * LNS & Co. only: generate neighborhoods with Fisher-Yates
+    */
+    //-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    Vector<Vector<int>> neighborhoods;
+    if(opts.mode == Options::SearchMode::LNS or opts.mode == Options::SearchMode::SNBS)
+    {
+        long randSeed = 1273916546123835; // Arbitrary seed, FIXME
+        std::mt19937 mt_rand = std::mt19937(randSeed);
+        int optVariable = fzModel->optVar();
+        
+        neighborhoods.initialize(neighborhoodsAmount);
+        for(int nbh = 0; nbh < neighborhoodsAmount; nbh += 1)
+        {
+            // Fill variables vector to be shuffled
+            neighborhoods[nbh].initialize(fzModel->intVariables->count);
+            for(int i = 0; i < fzModel->intVariables->count; i += 1)
+            {
+                neighborhoods[nbh].push_back(i);
+            }
+            
+            // Shuffle (Fisher-Yates/Knuth)
+            for(int i = 0; i < fzModel->intVariables->count-1; i += 1)
+            {
+                // We want a random variable index (bar the optVariable)
+                std::uniform_int_distribution<int> rand_dist(i, fzModel->intVariables->count-2);
+                int j{rand_dist(mt_rand)};
+                int tmp{neighborhoods[nbh][i]};
+                neighborhoods[nbh][i] = neighborhoods[nbh][j];
+                neighborhoods[nbh][j] = tmp;
+            }
+            neighborhoods[nbh].push_back(optVariable);
+        }
+    }
+    //-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
     
     long long elapsedTime { std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - startTime).count() };
@@ -134,6 +214,62 @@ int main(int argc, char * argv[])
         }
         onlyBestSolution = onlyBestSolution and opts.solutionsCount == 1;
         std::stringstream bestSolution;
+        //-------------------------------------------------------------------------------
+        /*
+        * LNS & Co. only: find a first solution
+        */
+        //-------------------------------------------------------------------------------
+        if(false and opts.mode == Options::SearchMode::LNS or opts.mode == Options::SearchMode::SNBS)
+        {
+            IntDomainsRepresentations* solDomRepr;
+            MemUtils::malloc(&solDomRepr);
+            int varCount {fzModel->intVariables->count};
+            MemUtils::malloc(&backtrackSearcher);
+            backtrackSearcher->initialize(fzModel);
+            #ifdef GPU
+            Wrappers::getNextSolution<<<1, 1>>>(backtrackSearcher, solutionFound, timeout - elapsedTime);
+            LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
+            #else
+            solutionFound = backtrackSearcher->getNextSolution();
+            #endif
+            backtrackSearcher->deinitialize();
+            // Print/store the found solution.
+            if (not onlyBestSolution)
+            {
+                solutionCount += 1;
+
+                printer.print(cout, *fzModel);
+                cout << "----------" << endl;
+            }
+            else
+            {
+                solutionCount = 1;
+
+                bestSolution.str("");
+                printer.print(bestSolution, *fzModel);
+            }
+            solDomRepr->initialize(varCount);
+            IntDomainsRepresentations* intDomRepr  = &fzModel->intVariables->domains.representations;
+            for (int vi = 0; vi < varCount; vi += 1)
+            {   
+                int min = intDomRepr->minimums[vi];
+                int max = intDomRepr->maximums[vi];
+                int offset = intDomRepr->offsets[vi];
+                int version = intDomRepr->versions[vi];
+                Vector<unsigned int>* bitvector = &intDomRepr->bitvectors[vi];
+                solDomRepr->push(min, max, offset, version, bitvector);
+            }
+            if(opts.mode == Options::SearchMode::LNS)
+            {
+                LNSSearcher->bestSolution = solDomRepr;
+            }
+            else
+            {
+                //SNBSearcher->bestSolution = solDomRepr;
+            }
+            elapsedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                            std::chrono::steady_clock::now() - startTime).count();
+        }
         //-------------------------------------------------------------------------------
         /*
         * Find solutions until the search criteria are met.

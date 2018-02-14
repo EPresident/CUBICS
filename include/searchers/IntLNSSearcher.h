@@ -46,6 +46,9 @@ struct IntLNSSearcher
     /// Indicates the variables to unassign.
     Vector<int> chosenVariables;
     
+    /// Vector of neighborhoods (variables to unassign).
+    Vector<Vector<int>>* neighborhoods;
+    
     IntVariables* variables;
     IntConstraints* constraints;
     /**
@@ -55,6 +58,10 @@ struct IntLNSSearcher
     * - the second is for the best solution found during the search.
     */
     Vector<IntDomainsRepresentations> domainsBackup;
+    /// Domains after initial propagation (before solving start)
+    IntDomainsRepresentations* originalDomains;
+    /// Best solution found so far
+    IntDomainsRepresentations* bestSolution;
     
     IntBacktrackSearcher BTSearcher;
     
