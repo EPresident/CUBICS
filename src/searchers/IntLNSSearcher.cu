@@ -14,7 +14,6 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     unassignAmount = variables->count*unassignRate;
     if(unassignAmount < 1) unassignAmount = 1;
 
-    BTSearcher.initialize(fzModel);
     chosenVariables.initialize(unassignAmount);
     domainsBackup.initialize(variables->count);
     domainsBackup.resize(variables->count);
@@ -36,8 +35,6 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     
 #ifdef GPU
     varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
-#else
-    mt_rand = std::mt19937(randSeed);
 #endif
 
     switch (fzModel->method())
@@ -77,8 +74,10 @@ void IntLNSSearcher::deinitialize()
         domainsBackup[i].deinitialize();
     }
     domainsBackup.deinitialize();
+    originalDomains->deinitialize();
+    bestSolution->deinitialize();
     chosenVariables.deinitialize();
-    BTSearcher.deinitialize();
+    neighborhood.deinitialize();
 }
 
 /**
@@ -87,6 +86,9 @@ void IntLNSSearcher::deinitialize()
 */
 cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
 {
+    #ifdef GPU
+    int taskIndex = KernelUtils::getTaskIndex();
+    #endif
     bool solutionFound = false;
 
     while (not solutionFound 
@@ -95,153 +97,146 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
           )
     {
         // Setup timer to compute this iteration's duration
-        timer.setStartTime();
+        //timer.setStartTime();
         
         switch (LNSState)
         {
             case Initialized:
             {
-                // Backup initial domains
-                backupInitialDomains();
-                
-                // Find first solution
-                solutionFound = BTSearcher.getNextSolution(timeout);
-                LNSState = DoUnassignment;
-                // Save solution
+                neighborhood.initialize(unassignAmount);
+                // Push neighbors
+                Vector<int>* neighbors = &neighborhoods->at(taskIndex);
                 #ifdef GPU
-                    Wrappers::saveBestSolution
-                        <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
+                    Wrappers::pushNeighbors
+                        <<<neighborsBlockCount, DEFAULT_BLOCK_SIZE>>>
+                        (&neighborhood, neighbors, originalDomains);
                     cudaDeviceSynchronize();
-                    
-                    // init cuRAND state with the given seed and no offset
-                    MemUtils::malloc(&cuRANDstate);
-                    curand_init(randSeed, threadIdx.x + blockIdx.x * blockDim.x, 0, cuRANDstate);
                 #else
-                    saveBestSolution();
+                    neighborhood->pushNeighbors(&neighborhood, neighbors, originalDomains);
                 #endif
+                
+                LNSState = VariableNotChosen;
             }
-                break;
+            break;
 
-            case DoUnassignment:
-            {               
-                if(unassignAmount < 1)
-                {
-                    return false;
-                }
-                // Fill variables vector to be shuffled
-                Vector<int> shuffledVars;
-                shuffledVars.initialize(variables->count);
-                for(int i = 0; i < variables->count; i += 1)
-                {
-                    shuffledVars.push_back(i);
-                }
-                
-                // Shuffle (Fisher-Yates/Knuth)
-                for(int i = 0; i < variables->count-1; i += 1)
-                {
-                    // We want a random variable index (bar the optVariable)
-                    #ifdef GPU
-                        int j {RandUtils::uniformRand(cuRANDstate, i,
-                                variables->count-2)};
-                    #else
-                        std::uniform_int_distribution<int> rand_dist(i,
-                            variables->count-2);
-                        int j{rand_dist(mt_rand)};
-                    #endif
-                    
-                    int tmp{shuffledVars[i]};
-                    shuffledVars[i] = shuffledVars[j];
-                    shuffledVars[j] = tmp;
-                }
-                // Store the chosen variables
-                chosenVariables.clear();
-                for(int i = 0; i < unassignAmount; i += 1)
-                {
-                    chosenVariables.push_back(shuffledVars[i]);
-                    #ifndef GPU
-                        std::cerr << "LNS[" << iterationsDone+1 << 
-                            "]: unassigning variable " << 
-                            shuffledVars[i] << "\n";
-                    #endif
-                }
-                shuffledVars.deinitialize();
-                // Unassign optimization variable
-                chosenVariables.push_back(optVariable);
-            
-                // Unassignment will be performed starting from the
-                // best solution found so far
-                #ifdef GPU
-                    Wrappers::restoreBestSolution
-                        <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
-                    cudaDeviceSynchronize();
-                #else
-                    restoreBestSolution();
-                #endif
-            
-                // Unassign variables
-                for (int i = 0; i < chosenVariables.size; i += 1)
-                {
-                    int vi = chosenVariables[i];
-                    BTSearcher.stack.representations->minimums[vi] =
-                        domainsBackup[vi].minimums[0];
-                    BTSearcher.stack.representations->maximums[vi] =
-                        domainsBackup[vi].maximums[0];
-                    BTSearcher.stack.representations->offsets[vi] =
-                        domainsBackup[vi].offsets[0];
-                    // Versions are reset below, for all variables             
-                    BTSearcher.stack.representations->bitvectors[vi].
-                        copy(&domainsBackup[vi].bitvectors[0]);
-                }
-                
-                // Reset backtrack searcher stack
-                // We don't want it to backtrack our unassignment    
-                for (int i = 0; i < variables->count; i += 1)
-                {
-                    BTSearcher.stack.backupsStacks[i].minimums.clear();
-                    BTSearcher.stack.backupsStacks[i].maximums.clear();
-                    BTSearcher.stack.backupsStacks[i].offsets.clear();
-                    BTSearcher.stack.backupsStacks[i].versions.clear();
-                    BTSearcher.stack.backupsStacks[i].bitvectors.clear();
-                    BTSearcher.stack.levelsStacks[i].clear();
-                    // Reset versions (n° of modifications to domains)
-                    BTSearcher.stack.representations->versions[i] = 0;
-                }
-                BTSearcher.backtrackingState = 0; // Reset backtracker state
-                BTSearcher.backtrackingLevel = 0;
-                BTSearcher.chosenVariables.clear();
-                BTSearcher.chosenValues.clear();
-            
-                // Update LNS state
-                ++iterationsDone;
-                LNSState = VariablesUnassigned;
-            }
-                break;
-            case VariablesUnassigned:
+            case VariableNotChosen:
             {
-                // Begin exploring the new neighborhood
-                solutionFound = BTSearcher.getNextSolution(timeout);
-                if(not solutionFound)
+                // Backup current state (GPU/CPU)
+                #ifdef GPU
+                Wrappers::saveState
+                    <<<neighborsBlockCount, DEFAULT_BLOCK_SIZE>>>
+                    (&stack, backtrackingLevel);
+                cudaDeviceSynchronize();
+                #else
+                stack.saveState(backtrackingLevel);
+                #endif
+                // "Choose" a variable to assign
+                chosenVariables.push_back(neighborhood.map[backtrackingLevel][0]);
+                backtrackingState = VariableChosen;
+
+            }
+            break;
+
+            case VariableChosen:
+            {
+                // Choose a value for the variable
+                if (not variables->domains.isSingleton(chosenVariables.back(), &neighborhood))
                 {
-                    // Subtree exhausted
-                    LNSState = DoUnassignment;
+                    // Not a singleton, use the chooser
+                    if (valuesChooser.getFirstValue(chosenVariables.back(), &chosenValue, &neighborhood))
+                    {
+                        chosenValues.push_back(chosenValue);
+                        variables->domains.fixValue(chosenVariables.back(), chosenValues.back(), &neighborhood);
+                        backtrackingState = ValueChosen;
+                    }
+                    else
+                    {
+                        LogUtils::error(__PRETTY_FUNCTION__, "Failed to set first value");
+                    }
                 }
                 else
                 {
-                    #ifndef GPU
-                        std::cerr << "LNS[" << iterationsDone << 
-                            "]: improving solution found.\n";
-                    #endif
-                    // Backup improving solution
-                    #ifdef GPU
-                        Wrappers::saveBestSolution
-                            <<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(this);
-                        cudaDeviceSynchronize();
-                    #else
-                        saveBestSolution();
-                    #endif
+                    // Domain's a singleton, choose the only possible value.
+                    chosenValues.push_back(variables->domains.getMin(chosenVariables.back(), &neighborhood));
+                    // Nothing has been changed, so no need to propagate.
+                    backtrackingState = SuccessfulPropagation;
                 }
             }
-                break;
+            break;
+            
+            case ValueChosen:
+            {
+                // A domain has been changed, need to propagate.
+                bool noEmptyDomains = propagator.propagateConstraints(&neighborhood);
+
+                if (noEmptyDomains)
+                {
+                    backtrackingState = SuccessfulPropagation;
+                }
+                else
+                {
+                    // A domain has been emptied, try another value.
+                    backtrackingState = ValueChecked;
+                }
+            }
+            break;
+
+            case SuccessfulPropagation:
+            {
+                if (backtrackingLevel < unassignAmount - 1)
+                {
+                    // Not all variables have been assigned, move to the next
+                    backtrackingLevel += 1;
+                    backtrackingState = VariableNotChosen;
+                }
+                else
+                {
+                    // All variables assigned
+                    backtrackingState = ValueChecked;
+
+                    if (propagator.verifyConstraints(&neighborhood))
+                    {
+                        solutionFound = true;
+                    }
+                }
+            }
+            break;
+
+            case ValueChecked:
+            {
+                // Revert last value choice on the stack (GPU/CPU)
+                #ifdef GPU
+                Wrappers::restoreState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
+                cudaDeviceSynchronize();
+                #else
+                stack.restoreState(backtrackingLevel);
+                #endif
+                // Choose another value, if possible
+                if (valuesChooser.getNextValue(chosenVariables.back(), chosenValues.back(), &chosenValue, &neighborhood))
+                {
+                    // There's another value
+                    chosenValues.back() = chosenValue;
+                    variables->domains.fixValue(chosenVariables.back(), chosenValues.back(), &neighborhood);
+                    backtrackingState = ValueChosen;
+                }
+                else
+                {
+                    // All values have been used, backtrack.
+                    // Clear current level state from the stack (GPU/CPU)
+                    #ifdef GPU
+                    Wrappers::clearState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
+                    cudaDeviceSynchronize();
+                    #else
+                    stack.clearState(backtrackingLevel);
+                    #endif
+                    // Return to the previous backtrack level
+                    // and resume the search from there
+                    backtrackingLevel -= 1;
+                    chosenVariables.pop_back();
+                    chosenValues.pop_back();
+                }
+            }
+            break;
         }
         
         // Compute elapsed time and subtract it from timeout

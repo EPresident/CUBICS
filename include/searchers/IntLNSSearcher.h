@@ -18,8 +18,11 @@ struct IntLNSSearcher
     enum States
     {        
         Initialized,
-        DoUnassignment,
-        VariablesUnassigned
+        VariableNotChosen,
+        VariableChosen, ///< A variable has been chosen
+        ValueChosen, ///< A value for the variable has been chosen
+        SuccessfulPropagation, ///< Propagation successful after fixing a variable
+        ValueChecked ///< Need to find another value for the same variable
     };
 
     int LNSState;
@@ -37,20 +40,17 @@ struct IntLNSSearcher
     int iterationsDone;
     /// LNS iterations to do
     int maxIterations;
-    /// Timeout (in milliseconds)
-    //long timeout;
     
-    /// Device-Host timer
+    /// Device-Host timers
+    //Vector<TimerUtils> timers;
     TimerUtils timer;
-    
-    /// Indicates the variables to unassign.
-    Vector<int> chosenVariables;
     
     /// Vector of neighborhoods (variables to unassign).
     Vector<Vector<int>>* neighborhoods;
     
     IntVariables* variables;
     IntConstraints* constraints;
+
     /**
     * Here go the domains representation backups. The i-th 
     * representation is for the i-th variable, and has two "entries":
@@ -63,19 +63,38 @@ struct IntLNSSearcher
     /// Best solution found so far
     IntDomainsRepresentations* bestSolution;
     
-    IntBacktrackSearcher BTSearcher;
-    
-    #ifndef GPU
-        /// Mersenne Twister PRNG
-        std::mt19937 mt_rand;
-    #endif
+    IntNeighborhood neighborhood;
     
     #ifdef GPU
-        /// State for the cuRAND PRNG library (GPU)
-        curandState* cuRANDstate;
         /// CUDA blocks needed to handle all the variables
         int varibalesBlockCount;
+        /// CUDA blocks needed to handle all the neighbors
+        int neighborsBlockCount;
     #endif
+    
+    // Stuff for the backtrack search part
+    int backtrackingState;
+    int backtrackingLevel;
+
+    /// Current variable to be assigned.
+    int chosenVariable;
+    /// Value to assign to the chosen variable.
+    int chosenValue;
+    
+    /// Indicates the variable assigned on each backtrack level.
+    Vector<int> chosenVariables;
+    /** 
+    * Indicates the value of the assignment on each backtrack level;
+    * chosenValues[i] is the value assigned to chosenVariables[i].
+    */
+    Vector<int> chosenValues;
+
+    IntBacktrackStack stack;
+
+    IntVariablesChooser variablesChooser;
+    IntValuesChooser valuesChooser;
+
+    IntConstraintsPropagator propagator;
 
     enum SearchType
     {

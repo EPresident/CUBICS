@@ -172,10 +172,45 @@ int main(int argc, char * argv[])
             }
             neighborhoods[nbh].push_back(optVariable);
         }
+        if(opts.mode == Options::SearchMode::LNS)
+        {
+            LNSSearcher->neighborhoods = &neighborhoods;
+        }
+        else
+        {
+            //SNBSearcher->originalDomains = originalDomains;
+        }
     }
     //-------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------
-    
+    //-------------------------------------------------------------------------------
+    /*
+    * LNS & Co. only: create CUDA streams
+    */
+    //-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    //~ if(opts.mode == Options::SearchMode::LNS or opts.mode == Options::SearchMode::SNBS)
+    //~ {
+        //~ Vector<cudaStream_t>* streams;
+        //~ if(opts.mode == Options::SearchMode::LNS)
+        //~ {
+            //~ LNSSearcher->streams.initialize(neighborhoodsAmount);
+            //~ streams = &LNSSearcher->streams;
+        //~ }
+        //~ else
+        //~ {
+            //~ //SNBSearcher->streams.initialize(neighborhoodsAmount);
+            //~ //streams = SNBSearcher->streams;
+        //~ }
+        
+        
+        //~ for(int i = 0; i < neighborhoodsAmount; i++)
+        //~ {
+            //~ cudaStreamCreate(&streams->at(i));
+        //~ }
+    //~ }
+                
     long long elapsedTime { std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - startTime).count() };
 
