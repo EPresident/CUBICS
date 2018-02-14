@@ -3,7 +3,7 @@
 #include <cassert>
 #include <wrappers/Wrappers.h>
 
-cudaDevice void IntNeighborhood::initialize(int count)
+cudaHostDevice void IntNeighborhood::initialize(int count)
 {
     this->count = count;
     // Init bitvector
@@ -23,7 +23,7 @@ cudaDevice void IntNeighborhood::initialize(int count)
     #endif
 }
 
-cudaDevice void IntNeighborhood::deinitialize()
+cudaHostDevice void IntNeighborhood::deinitialize()
 {
     neighMask.deinitialize();
     neighRepr.deinitialize();
@@ -66,6 +66,8 @@ cudaDevice void IntNeighborhood::pushNeighbors(Vector<int>* neighbors, IntDomain
         events.push_back(EventTypes::Changed);
         // Push action
         neighActions.push();
+        // Lastly, push the neighbors
+        // This is done separately to synchronize it
     }
     
 }

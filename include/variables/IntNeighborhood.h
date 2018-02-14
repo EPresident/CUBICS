@@ -47,8 +47,8 @@ struct IntNeighborhood
     bool allConstraintsSatisfied;
 
     /// Allocate memory for \a count sized neighborhood
-    cudaDevice void initialize(int count);
-    cudaDevice void deinitialize();
+    cudaHostDevice void initialize(int count);
+    cudaHostDevice void deinitialize();
 
     /**
      * Add the neighbor variables to the neighborhood.
