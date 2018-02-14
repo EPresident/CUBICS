@@ -1,6 +1,7 @@
 #pragma once
 
 #include <variables/IntVariables.h>
+#include <variables/IntNeighborhood.h>
 
 struct IntValuesChooser
 {
@@ -28,9 +29,11 @@ struct IntValuesChooser
     * \return true if successful.
     */
     cudaDevice bool getFirstValue(int variable, int* firstValue);
+    cudaDevice bool getFirstValue(int variable, int* firstValue, IntNeighborhood* nbh);
     /**
     * Get the next value (following the chooser's criteria) for a variable.
     * \return true if successful.
     */
     cudaDevice bool getNextValue(int variable, int currentValue, int* nextValue);
+    cudaDevice bool getNextValue(int variable, int currentValue, int* nextValue, IntNeighborhood* nbh);
 };

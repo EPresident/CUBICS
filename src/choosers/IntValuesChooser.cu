@@ -28,6 +28,20 @@ cudaDevice bool IntValuesChooser::getFirstValue(int variable, int* firstValue)
             return false;
     }
 }
+cudaDevice bool IntValuesChooser::getFirstValue(int variable, int* firstValue, IntNeighborhood* nbh)
+{
+    switch (type)
+    {
+        case InOrder:
+            return IntInOrderValuesChooser::getFirstValue(this, variable, firstValue, nbh);
+        case Random:
+            LogUtils::error(__PRETTY_FUNCTION__, "Chooser not implemented yet");
+            return false;
+        default:
+            LogUtils::error(__PRETTY_FUNCTION__, "Invalid value chooser type");
+            return false;
+    }
+}
 
 /**
 * Get the next value (following the chooser's criteria) for a variable.
@@ -41,6 +55,20 @@ cudaDevice bool IntValuesChooser::getNextValue(int variable, int currentValue, i
             return IntInOrderValuesChooser::getNextValue(this, variable, currentValue, nextValue);
         case Random:
             return IntRandomValuesChooser::getNextValue(this, variable, currentValue, nextValue);
+        default:
+            LogUtils::error(__PRETTY_FUNCTION__, "Invalid value chooser type");
+            return false;
+    }
+}
+cudaDevice bool IntValuesChooser::getNextValue(int variable, int currentValue, int* nextValue, IntNeighborhood* nbh)
+{
+    switch (type)
+    {
+        case InOrder:
+            return IntInOrderValuesChooser::getNextValue(this, variable, currentValue, nextValue, nbh);
+        case Random:
+            LogUtils::error(__PRETTY_FUNCTION__, "Chooser not implemented yet");
+            return false;
         default:
             LogUtils::error(__PRETTY_FUNCTION__, "Invalid value chooser type");
             return false;
