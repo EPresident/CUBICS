@@ -31,8 +31,11 @@ struct IntNeighborhood
     IntDomainsRepresentations neighRepr;
     /// Domain actions of the neighbors
     IntDomainsActions neighActions;
-    /// Map from variable name (number) to its representation in \a neighRepr
-    Vector<Vector<int>> map;
+    /**
+     * Map from variable name (number) to its representation in \a neighRepr
+     * If map[i]=j, then variable j has its neigh repr at index i.
+     */ 
+    Vector<int> map;
     /// A list of domain events (domain changed) in chronological order.
     Vector<int> events;
     //-----------------------------------------------------------
@@ -46,8 +49,7 @@ struct IntNeighborhood
     bool someConstraintsToPropagate;
     bool allConstraintsSatisfied;
 
-    /// Allocate memory for \a count sized neighborhood
-    cudaHostDevice void initialize(int count);
+    cudaHostDevice void initialize(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr);
     cudaHostDevice void deinitialize();
 
     /**
@@ -55,7 +57,7 @@ struct IntNeighborhood
      * \param neighbors list of the variable composing the neighborhood
      * \param originalRepr the representation of the original domain of the variable
      */
-    cudaDevice void pushNeighbors(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr);
+    void pushNeighbors(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr);
     
     /// Find which representation is for \a var and return it in \a repr (used for kernel)
     cudaDevice void getBinding(int var, int* repr);

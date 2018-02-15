@@ -3,16 +3,15 @@
 #include <cassert>
 #include <wrappers/Wrappers.h>
 
-cudaHostDevice void IntNeighborhood::initialize(int count)
+void IntNeighborhood::initialize(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr)
 {
-    this->count = count;
+    this->count = neighbors->size;
     // Init bitvector
     neighMask.initialize(count, false);
     // Init domains representations
     neighRepr.initialize(count);
     // Init map
     map.initialize(count);
-    map.resize(count);
     // Init events
     events.initialize(count);
     // init actions
@@ -21,40 +20,14 @@ cudaHostDevice void IntNeighborhood::initialize(int count)
     #ifdef GPU
     variablesBlocks = KernelUtils::getBlockCount(count, DEFAULT_BLOCK_SIZE, true);
     #endif
-}
-
-cudaHostDevice void IntNeighborhood::deinitialize()
-{
-    neighMask.deinitialize();
-    neighRepr.deinitialize();
-    for(int i = 0; i < map.size; i += 1)
-    {
-        map[i].deinitialize();
-    }
-    map.deinitialize();
-    events.deinitialize();
-    neighActions.deinitialize();
-}
-
-cudaDevice void IntNeighborhood::pushNeighbors(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr)
-{
-    #ifdef GPU
-    int i = KernelUtils::getTaskIndex();
-    if (i >= 0 and i < neighbors->size)
-    #else
+    // Push neighbors
     for (int i = 0; i < neighbors->size; i += 1)
-    #endif
     {
         int var = neighbors->at(i);
         // Update mask
         neighMask.set(var);
         // Update variable-representation map
-        int idx = neighRepr.minimums.size;
-        Vector<int> bind;
-        bind.initialize(2);
-        bind.push_back(var);
-        bind.push_back(idx);
-        map.push_back(bind);
+        map.push_back(var);
         // Push to domain representation
         int min = originalRepr->minimums[var];
         int max = originalRepr->maximums[var];
@@ -66,10 +39,16 @@ cudaDevice void IntNeighborhood::pushNeighbors(Vector<int>* neighbors, IntDomain
         events.push_back(EventTypes::Changed);
         // Push action
         neighActions.push();
-        // Lastly, push the neighbors
-        // This is done separately to synchronize it
     }
-    
+}
+
+cudaHostDevice void IntNeighborhood::deinitialize()
+{
+    neighMask.deinitialize();
+    neighRepr.deinitialize();
+    map.deinitialize();
+    events.deinitialize();
+    neighActions.deinitialize();
 }
 
 cudaDevice void IntNeighborhood::getBinding(int var, int* repr)
@@ -81,9 +60,9 @@ cudaDevice void IntNeighborhood::getBinding(int var, int* repr)
     for (int i = 0; i < map.size; i += 1)
     #endif
     {
-        if(map[i][0] == var)
+        if(map[i] == var)
         {
-            *repr = map[i][1];
+            *repr = i;
         }
     }
 }

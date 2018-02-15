@@ -46,7 +46,6 @@ namespace Wrappers
     cudaGlobal void checkSatisfiedConstraints(IntConstraintsPropagator* propagator, IntNeighborhood* nbh);
     
     // Int neighborhoods
-    cudaGlobal void pushNeighbors(IntNeighborhood* nbh, Vector<int>* neighbors, IntDomainsRepresentations* originalRepr);
     cudaGlobal void getBinding(IntNeighborhood* nbh, int variable, int* reprIdx);
 }
 #endif 

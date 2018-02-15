@@ -144,11 +144,6 @@ cudaGlobal void Wrappers::checkSatisfiedConstraints(IntConstraintsPropagator* pr
 //----------------------
 // Integer neighborhoods
 //----------------------
-cudaGlobal void Wrappers::pushNeighbors(IntNeighborhood* nbh, Vector<int>* neighbors, IntDomainsRepresentations* originalRepr)
-{
-    nbh->pushNeighbors(neighbors, originalRepr);
-}
-
 cudaGlobal void Wrappers::getBinding(IntNeighborhood* nbh, int variable, int* reprIdx)
 {
     nbh->getBinding(variable, reprIdx);
