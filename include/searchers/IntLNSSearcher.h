@@ -3,6 +3,8 @@
 #include <searchers/IntBacktrackSearcher.h>
 #include <random>
 #include <utils/TimerUtils.h>
+#include <data_structures/Lock.h>
+#include <variables/IntNeighborhood.h>
 
 /**
 * Struct used to perform Large Neighborhood Search.
@@ -36,34 +38,20 @@ struct IntLNSSearcher
     double unassignmentRate;
     /// The number of variables that will be unassigned.
     int unassignAmount;
-    /// LNS iterations done (i.e. variables unassignments)
-    int iterationsDone;
-    /// LNS iterations to do
-    int maxIterations;
     
     /// Device-Host timers
     //Vector<TimerUtils> timers;
     TimerUtils timer;
     
-    /// Vector of neighborhoods (variables to unassign).
-    Vector<Vector<int>>* neighborhoods;
-    
     IntVariables* variables;
     IntConstraints* constraints;
 
-    /**
-    * Here go the domains representation backups. The i-th 
-    * representation is for the i-th variable, and has two "entries":
-    * - the first is for the initial domain (before solving begins);
-    * - the second is for the best solution found during the search.
-    */
-    Vector<IntDomainsRepresentations> domainsBackup;
     /// Domains after initial propagation (before solving start)
     IntDomainsRepresentations* originalDomains;
     /// Best solution found so far
     IntDomainsRepresentations* bestSolution;
     
-    IntNeighborhood neighborhood;
+    Vector<IntNeighborhood*> neighborhoods;
     
     #ifdef GPU
         /// CUDA blocks needed to handle all the variables
@@ -72,26 +60,19 @@ struct IntLNSSearcher
         int neighborsBlockCount;
     #endif
     
+    //-----------------------------------------
     // Stuff for the backtrack search part
-    int backtrackingState;
-    int backtrackingLevel;
-
-    /// Current variable to be assigned.
-    int chosenVariable;
-    /// Value to assign to the chosen variable.
-    int chosenValue;
-    
+    //-----------------------------------------
     /// Indicates the variable assigned on each backtrack level.
-    Vector<int> chosenVariables;
+    Vector<Vector<int>> chosenVariables;
     /** 
     * Indicates the value of the assignment on each backtrack level;
     * chosenValues[i] is the value assigned to chosenVariables[i].
     */
-    Vector<int> chosenValues;
+    Vector<Vector<int>> chosenValues;
 
-    IntBacktrackStack stack;
+    Vector<IntBacktrackStack*> stacks;
 
-    IntVariablesChooser variablesChooser;
     IntValuesChooser valuesChooser;
 
     IntConstraintsPropagator propagator;
@@ -115,7 +96,7 @@ struct IntLNSSearcher
     * that will be unassigned.
     */
     void initialize(FlatZinc::FlatZincModel* fzModel, double unassignRate,
-                   int iterations);
+                   int numNeighborhoods, IntDomainsRepresentations* originalDomains);
     void deinitialize();
 
     /**
@@ -125,17 +106,11 @@ struct IntLNSSearcher
     cudaDevice bool getNextSolution(long long timeout);
     
     /**
-    * Back up the initial domains by copying the current domain 
-    * representation inside \a domainsBackup.
-    */
-    cudaDevice void backupInitialDomains();
-    
-    /**
     * Back up the best solution found so far by copying the 
     * current domain representation inside \a domainsBackup.
     * Beware that no optimality check are performed.
     */
-    cudaDevice void saveBestSolution();
+    cudaDevice void saveBestSolution(IntNeighborhood* neighborhood);
     
     /**
     * Restore the best solution found so far, by overwriting the current

@@ -31,9 +31,9 @@ cudaGlobal void Wrappers::getNextSolution(IntLNSSearcher* LNSSearcher, bool* sol
     *solutionFound = LNSSearcher->getNextSolution(timeout);
 }
 
-cudaGlobal void Wrappers::saveBestSolution(IntLNSSearcher* LNSSearcher)
+cudaGlobal void Wrappers::saveBestSolution(IntLNSSearcher* LNSSearcher, IntNeighborhood* nbh)
 {
-    LNSSearcher->saveBestSolution();
+    LNSSearcher->saveBestSolution(nbh);
 }
 
 cudaGlobal void Wrappers::restoreBestSolution(IntLNSSearcher* LNSSearcher)

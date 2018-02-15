@@ -6,56 +6,36 @@
 #include <iostream>
 
 void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassignRate,
-                                int iterations)
+                                int numNeighborhoods, IntDomainsRepresentations* originalDomains)
 {
     variables = fzModel->intVariables;
     constraints = fzModel->intConstraints;
+    randSeed = 1337; // FIXME
+    
+    this->originalDomains = originalDomains;
     
     unassignAmount = variables->count*unassignRate;
     if(unassignAmount < 1) unassignAmount = 1;
-
-    chosenVariables.initialize(unassignAmount);
-    domainsBackup.initialize(variables->count);
-    domainsBackup.resize(variables->count);
-    for(int i = 0; i < variables->count; i += 1)
-    {
-        domainsBackup[i].initialize(2);
-    }
-    #ifdef GPU
-        timer.initialize();
-    #endif
-
-    LNSState = Initialized;
-    unassignmentRate = unassignRate;
-    iterationsDone = 0;
-    LNSState = IntLNSSearcher::Initialized;
     
-    randSeed = 1337;
-    maxIterations = iterations;  
-    
-#ifdef GPU
-    varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
-#endif
-
+    // Check problem search type
     switch (fzModel->method())
     {
         case FlatZinc::FlatZincModel::Meth::SAT:
         {
             searchType = Satisfiability;
         }
-            break;
+        break;
         case FlatZinc::FlatZincModel::Meth::MAX:
         {
             searchType = Maximization;
         }
-            break;
+        break;
         case FlatZinc::FlatZincModel::Meth::MIN:
         {
             searchType = Minimization;
         }
-            break;
+        break;
     }
-
     if (searchType == Maximization or searchType == Minimization)
     {
         optVariable = fzModel->optVar();
@@ -65,19 +45,128 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     {
         LogUtils::error(__PRETTY_FUNCTION__, "Large Neighborhood Search is only possible on optimization problems!");
     }
+    //------------------------------------------------------------------
+    //------------------------------------------------------------------
+    // Generate neighborhoods
+    //------------------------------------------------------------------
+    //------------------------------------------------------------------
+    neighborhoods.initialize(numNeighborhoods);
+    std::mt19937 mt_rand = std::mt19937(randSeed);
+
+    Vector<int> neighVars;
+    neighVars.initialize(unassignAmount+1);
+    Vector<int> shuffledVars;
+    shuffledVars.initialize(fzModel->intVariables->count);
+    
+    for(int nbh = 0; nbh < numNeighborhoods; nbh += 1)
+    {
+        // Fill variables vector to be shuffled
+        for(int i = 0; i < fzModel->intVariables->count; i += 1)
+        {
+            shuffledVars.push_back(i);
+        }
+        
+        // Shuffle (Fisher-Yates/Knuth)
+        for(int i = 0; i < fzModel->intVariables->count-1; i += 1)
+        {
+            // We want a random variable index (bar the optVariable)
+            std::uniform_int_distribution<int> rand_dist(i, fzModel->intVariables->count-2);
+            int j{rand_dist(mt_rand)};
+            int tmp{shuffledVars[i]};
+            shuffledVars[i] = shuffledVars[j];
+            shuffledVars[j] = tmp;
+        }
+        // Copy the required subset of the shuffled variables
+        for(int i = 0; i < unassignAmount; i++)
+        {
+            neighVars.push_back(shuffledVars[i]);
+        }
+        neighVars.push_back(optVariable);
+        // Init neighborhood
+        IntNeighborhood newNeigh;
+        newNeigh.initialize(&neighVars, originalDomains);
+
+        neighborhoods.push_back(&newNeigh);
+        // Clear vectors for reuse
+        shuffledVars.clear();
+        neighVars.clear();
+    }
+    neighVars.deinitialize();
+    shuffledVars.deinitialize();
+    //------------------------------------------------------------------
+    //------------------------------------------------------------------
+
+    // init chosen variables/values
+    chosenVariables.initialize(numNeighborhoods);
+    for(int i = 0; i < numNeighborhoods; i++)
+    {
+        chosenVariables[i].initialize(unassignAmount+1);
+    }
+    chosenValues.initialize(numNeighborhoods);
+    for(int i = 0; i < numNeighborhoods; i++)
+    {
+        chosenValues[i].initialize(unassignAmount+1);
+    }
+
+    #ifdef GPU
+        timer.initialize();
+    #endif
+
+    unassignmentRate = unassignRate;
+    LNSState = IntLNSSearcher::Initialized;
+
+#ifdef GPU
+    varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
+    neighborsBlockCount = KernelUtils::getBlockCount(numNeighborhoods, DEFAULT_BLOCK_SIZE);
+#endif
+
+    //------------------------------------------------------------------
+    //------------------------------------------------------------------
+    // Initialize stacks
+    //------------------------------------------------------------------
+    //------------------------------------------------------------------
+    stacks.initialize(numNeighborhoods);
+    for(int s = 0; s < stacks.size; s++)
+    {
+        IntBacktrackStack newStack;
+        newStack.initialize(&neighborhoods.at(s)->neighRepr);
+        stacks.push_back(&newStack);
+    }
+    //------------------------------------------------------------------
+    //------------------------------------------------------------------
 }
 
 void IntLNSSearcher::deinitialize()
 {
-    for(int i = 0; i < variables->count; i += 1)
-    {
-        domainsBackup[i].deinitialize();
-    }
-    domainsBackup.deinitialize();
     originalDomains->deinitialize();
     bestSolution->deinitialize();
+    for(int n = 0; n < neighborhoods.size; n++)
+    {
+        neighborhoods.at(n)->deinitialize();
+    }
+    neighborhoods.deinitialize();
+    
+    // deinit stacks
+    for(int s = 0; s < stacks.size; s++)
+    {
+        stacks[s]->deinitialize();
+    }
+    stacks.deinitialize();
+    
+    // deinit chosen variables/values
+    for(int i = 0; i < chosenVariables.size; i++)
+    {
+        chosenVariables[i].deinitialize();
+    }
     chosenVariables.deinitialize();
-    neighborhood.deinitialize();
+    
+    for(int i = 0; i < chosenValues.size; i++)
+    {
+        chosenValues[i].deinitialize();
+    }
+    chosenValues.deinitialize();
+    
+    propagator.deinitialize();
 }
 
 /**
@@ -90,10 +179,16 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
     int taskIndex = KernelUtils::getTaskIndex();
     #endif
     bool solutionFound = false;
-
+    bool neighborhoodExplored = false;
+    IntNeighborhood* neighborhood = neighborhoods.at(taskIndex);
+    IntBacktrackStack* stack = stacks[taskIndex];
+    int backtrackingLevel;
+    int chosenValue;
+    
+    
     while (not solutionFound 
-            && iterationsDone < maxIterations
-            && timeout > 0
+           and not neighborhoodExplored
+           and timeout > 0
           )
     {
         // Setup timer to compute this iteration's duration
@@ -103,18 +198,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
         {
             case Initialized:
             {
-                neighborhood.initialize(unassignAmount);
-                // Push neighbors
-                Vector<int>* neighbors = &neighborhoods->at(taskIndex);
-                #ifdef GPU
-                    Wrappers::pushNeighbors
-                        <<<neighborsBlockCount, DEFAULT_BLOCK_SIZE>>>
-                        (&neighborhood, neighbors, originalDomains);
-                    cudaDeviceSynchronize();
-                #else
-                    neighborhood->pushNeighbors(&neighborhood, neighbors, originalDomains);
-                #endif
-                
+                // ? 
                 LNSState = VariableNotChosen;
             }
             break;
@@ -125,14 +209,14 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 #ifdef GPU
                 Wrappers::saveState
                     <<<neighborsBlockCount, DEFAULT_BLOCK_SIZE>>>
-                    (&stack, backtrackingLevel);
+                    (stack, backtrackingLevel);
                 cudaDeviceSynchronize();
                 #else
-                stack.saveState(backtrackingLevel);
+                stack->saveState(backtrackingLevel);
                 #endif
                 // "Choose" a variable to assign
-                chosenVariables.push_back(neighborhood.map[backtrackingLevel][0]);
-                backtrackingState = VariableChosen;
+                chosenVariables[taskIndex].push_back(neighborhood->map[backtrackingLevel]);
+                LNSState = VariableChosen;
 
             }
             break;
@@ -140,14 +224,14 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
             case VariableChosen:
             {
                 // Choose a value for the variable
-                if (not variables->domains.isSingleton(chosenVariables.back(), &neighborhood))
+                if (not variables->domains.isSingleton(chosenVariables[taskIndex].back(), neighborhood))
                 {
                     // Not a singleton, use the chooser
-                    if (valuesChooser.getFirstValue(chosenVariables.back(), &chosenValue, &neighborhood))
+                    if (valuesChooser.getFirstValue(chosenVariables[taskIndex].back(), &chosenValue, neighborhood))
                     {
-                        chosenValues.push_back(chosenValue);
-                        variables->domains.fixValue(chosenVariables.back(), chosenValues.back(), &neighborhood);
-                        backtrackingState = ValueChosen;
+                        chosenValues[taskIndex].push_back(chosenValue);
+                        variables->domains.fixValue(chosenVariables[taskIndex].back(), chosenValues[taskIndex].back(), neighborhood);
+                        LNSState = ValueChosen;
                     }
                     else
                     {
@@ -157,9 +241,9 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 else
                 {
                     // Domain's a singleton, choose the only possible value.
-                    chosenValues.push_back(variables->domains.getMin(chosenVariables.back(), &neighborhood));
+                    chosenValues[taskIndex].push_back(variables->domains.getMin(chosenVariables[taskIndex].back(), neighborhood));
                     // Nothing has been changed, so no need to propagate.
-                    backtrackingState = SuccessfulPropagation;
+                    LNSState = SuccessfulPropagation;
                 }
             }
             break;
@@ -167,36 +251,45 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
             case ValueChosen:
             {
                 // A domain has been changed, need to propagate.
-                bool noEmptyDomains = propagator.propagateConstraints(&neighborhood);
+                bool noEmptyDomains = propagator.propagateConstraints(neighborhood);
 
                 if (noEmptyDomains)
                 {
-                    backtrackingState = SuccessfulPropagation;
+                    LNSState = SuccessfulPropagation;
                 }
                 else
                 {
                     // A domain has been emptied, try another value.
-                    backtrackingState = ValueChecked;
+                    LNSState = ValueChecked;
                 }
             }
             break;
 
             case SuccessfulPropagation:
             {
-                if (backtrackingLevel < unassignAmount - 1)
+                if (backtrackingLevel < unassignAmount)
                 {
                     // Not all variables have been assigned, move to the next
                     backtrackingLevel += 1;
-                    backtrackingState = VariableNotChosen;
+                    LNSState = VariableNotChosen;
                 }
                 else
                 {
                     // All variables assigned
-                    backtrackingState = ValueChecked;
+                    LNSState = ValueChecked;
 
-                    if (propagator.verifyConstraints(&neighborhood))
+                    if (propagator.verifyConstraints(neighborhood))
                     {
                         solutionFound = true;
+                        // Shrink optimization bounds
+                        if (searchType == Maximization)
+                        {
+                            constraints->parameters[optConstraint][0] = variables->domains.getMin(optVariable, neighborhood) + 1;
+                        }
+                        else if (searchType == Minimization)
+                        {
+                            constraints->parameters[optConstraint][0] = variables->domains.getMin(optVariable, neighborhood) - 1;
+                        }
                     }
                 }
             }
@@ -206,34 +299,35 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
             {
                 // Revert last value choice on the stack (GPU/CPU)
                 #ifdef GPU
-                Wrappers::restoreState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
+                Wrappers::restoreState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(stack, backtrackingLevel);
                 cudaDeviceSynchronize();
                 #else
-                stack.restoreState(backtrackingLevel);
+                stack->restoreState(backtrackingLevel);
                 #endif
                 // Choose another value, if possible
-                if (valuesChooser.getNextValue(chosenVariables.back(), chosenValues.back(), &chosenValue, &neighborhood))
+                if (valuesChooser.getNextValue(chosenVariables[taskIndex].back(), chosenValues[taskIndex].back(), &chosenValue, neighborhood))
                 {
                     // There's another value
-                    chosenValues.back() = chosenValue;
-                    variables->domains.fixValue(chosenVariables.back(), chosenValues.back(), &neighborhood);
-                    backtrackingState = ValueChosen;
+                    chosenValues[taskIndex].back() = chosenValue;
+                    variables->domains.fixValue(chosenVariables[taskIndex].back(), chosenValues[taskIndex].back(), neighborhood);
+                    LNSState = ValueChosen;
                 }
                 else
                 {
                     // All values have been used, backtrack.
                     // Clear current level state from the stack (GPU/CPU)
+                    neighborhoodExplored = true;
                     #ifdef GPU
-                    Wrappers::clearState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(&stack, backtrackingLevel);
+                    Wrappers::clearState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(stack, backtrackingLevel);
                     cudaDeviceSynchronize();
                     #else
-                    stack.clearState(backtrackingLevel);
+                    stack->clearState(backtrackingLevel);
                     #endif
                     // Return to the previous backtrack level
                     // and resume the search from there
                     backtrackingLevel -= 1;
-                    chosenVariables.pop_back();
-                    chosenValues.pop_back();
+                    chosenVariables[taskIndex].pop_back();
+                    chosenValues[taskIndex].pop_back();
                 }
             }
             break;
@@ -248,54 +342,35 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
 }
 
 /**
-* Back up the initial domains.
-*/
-cudaDevice void IntLNSSearcher::backupInitialDomains()
-{
-/*#ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
-    if (vi >= 0 and vi < variables->count)
-#else*/
-    for (int vi = 0; vi < variables->count; vi += 1)
-//#endif
-    {   
-        IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
-        int min = intDomRepr->minimums[vi];
-        int max = intDomRepr->maximums[vi];
-        int offset = intDomRepr->offsets[vi];
-        int version = intDomRepr->versions[vi];
-        Vector<unsigned int>* bitvector = &intDomRepr->bitvectors[vi];
-        domainsBackup[vi].push(min, max, offset, version, bitvector);
-    }
-}
-
-/**
 * Back up the best solution found so far.
 * Beware that no optimality checks are performed.
 */
-cudaDevice void IntLNSSearcher::saveBestSolution()
+cudaDevice void IntLNSSearcher::saveBestSolution(IntNeighborhood* neighborhood)
 {
 #ifdef GPU
+    
     int vi = KernelUtils::getTaskIndex();
     if (vi >= 0 and vi < variables->count)
 #else
     for (int vi = 0; vi < variables->count; vi += 1)
 #endif
     {   
-        // Make sure there are at most two entries per variable,
-        // i.e. the initial domain and the best solution.
-        if(domainsBackup[vi].minimums.size > 1)
+        int varIdx {vi};
+        IntDomainsRepresentations* intDomRepr;
+        if(neighborhood->isNeighbor(varIdx))
         {
-            assert(domainsBackup[vi].minimums.size <= 2);
-            domainsBackup[vi].pop();
+             intDomRepr = &neighborhood->neighRepr;
+             varIdx = neighborhood->getRepresentationIndex(vi);
         }
-        IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
-        int min = intDomRepr->minimums[vi];
-        int max = intDomRepr->maximums[vi];
-        int offset = intDomRepr->offsets[vi];
-        int version = intDomRepr->versions[vi];
-        Vector<unsigned int>* bitvector = &intDomRepr->bitvectors[vi];
-        domainsBackup[vi].push(min, max, offset, version, bitvector);
+        else
+        {
+            intDomRepr = &variables->domains.representations;
+        }
+        bestSolution->minimums[vi] = intDomRepr->minimums[varIdx];
+        bestSolution->maximums[vi] = intDomRepr->maximums[varIdx];
+        bestSolution->offsets[vi] = intDomRepr->offsets[varIdx];
+        bestSolution->versions[vi] = intDomRepr->versions[varIdx];
+        bestSolution->bitvectors[vi].copy(&intDomRepr->bitvectors[varIdx]);
     }
 }
 
@@ -313,10 +388,10 @@ cudaDevice void IntLNSSearcher::restoreBestSolution()
 #endif
     {
         IntDomainsRepresentations* intDomRepr  = &variables->domains.representations;
-        intDomRepr->minimums[vi] = domainsBackup[vi].minimums.back();
-        intDomRepr->maximums[vi] = domainsBackup[vi].maximums.back();
-        intDomRepr->offsets[vi] = domainsBackup[vi].offsets.back();
-        intDomRepr->versions[vi] = domainsBackup[vi].versions.back();
-        intDomRepr->bitvectors[vi].copy(&domainsBackup[vi].bitvectors.back());
+        intDomRepr->minimums[vi] = bestSolution->minimums[vi];
+        intDomRepr->maximums[vi] = bestSolution->maximums[vi];
+        intDomRepr->offsets[vi] = bestSolution->offsets[vi];
+        intDomRepr->versions[vi] = bestSolution->versions[vi];
+        intDomRepr->bitvectors[vi].copy(&bestSolution->bitvectors[vi]);
     }
 }
