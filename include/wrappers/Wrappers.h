@@ -17,7 +17,7 @@ namespace Wrappers
     cudaGlobal void getNextSolution(IntBacktrackSearcher* backtrackSearcher, bool* solutionFound, long timeout);
     
     //Integer LNS searcher
-    cudaGlobal void getNextSolution(IntLNSSearcher* LNSSearcher, bool* solutionFound, long timeout);
+    cudaGlobal void getNextSolution(IntLNSSearcher* LNSSearcher, long long timeout);
     cudaGlobal void saveBestSolution(IntLNSSearcher* LNSSearcher, IntNeighborhood* nbh);
     cudaGlobal void restoreBestSolution(IntLNSSearcher* LNSSearcher);
     

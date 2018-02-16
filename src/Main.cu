@@ -41,7 +41,8 @@ int main(int argc, char * argv[])
     cout << "Timeout: " << opts.timeout << " ms" << endl ;
 
     // Number of neighborhoods processed in parallel
-    int neighborhoodsAmount = 4;
+    int neighborhoodsAmount = 2;
+    int neighborhoodsBlocksCount = KernelUtils::getBlockCount(neighborhoodsAmount, DEFAULT_BLOCK_SIZE, true);
 
     //-------------------------------------------------------------------------------
     // Initialize searcher
@@ -68,6 +69,7 @@ int main(int argc, char * argv[])
             #ifdef GPU
             Wrappers::propagateConstraints<<<1, 1>>>(&backtrackSearcher->
                 propagator, satisfiableModel);
+            LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
             #else
             *satisfiableModel = SNBSearcher->propagator.propagateConstraints();
             #endif
@@ -75,19 +77,18 @@ int main(int argc, char * argv[])
 
         case Options::SearchMode::LNS:
         case Options::SearchMode::SNBS:
-            IntConstraintsPropagator tempProp;
-            tempProp.initialize(fzModel->intVariables, fzModel->intConstraints);
+            IntConstraintsPropagator* tempProp;
+            MemUtils::malloc(&tempProp);
+            tempProp->initialize(fzModel->intVariables, fzModel->intConstraints);
             #ifdef GPU
-            Wrappers::propagateConstraints<<<1, 1>>>(&tempProp, satisfiableModel);
+            Wrappers::propagateConstraints<<<1, 1>>>(tempProp, satisfiableModel);
+            LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
             #else
-            *satisfiableModel = tempProp.propagateConstraints();
+            *satisfiableModel = tempProp->propagateConstraints();
             #endif
-            tempProp.deinitialize();
+            tempProp->deinitialize();
             break;
     }
-    #ifdef GPU
-    LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
-    #endif
     //-------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------
@@ -115,7 +116,16 @@ int main(int argc, char * argv[])
         if(opts.mode == Options::SearchMode::LNS)
         {
             MemUtils::malloc(&LNSSearcher);
-            LNSSearcher->initialize(fzModel, opts.unassignRate, opts.iterations, originalDomains);
+            LNSSearcher->initialize(fzModel, opts.unassignRate, neighborhoodsAmount, originalDomains);
+            for(int j = 0; j < neighborhoodsAmount; j++)
+            {
+                printf("Neigh %d: (",j);
+                for(int i = 0; i < LNSSearcher->neighborhoods[j]->count-1; i++)
+                {
+                    printf("%d, ", LNSSearcher->neighborhoods[j]->map[i]);
+                }
+                printf("%d)\n", LNSSearcher->neighborhoods[j]->map[LNSSearcher->neighborhoods[j]->count-1]);
+            }
         }
         else
         {
@@ -189,7 +199,7 @@ int main(int argc, char * argv[])
         //~ shuffledVars.deinitialize();
         //~ if(opts.mode == Options::SearchMode::LNS)
         //~ {
-            //~ LNSSearcher->neighborhoods = &neighborhoods;
+            //~ LNSSearcher->neighborhoods = &neighborhoods;neighborhoodsBlocksCount
         //~ }
         //~ else
         //~ {
@@ -241,7 +251,7 @@ int main(int argc, char * argv[])
         // LNS & Co. only: find a first solution
         //-------------------------------------------------------------------------------
         //-------------------------------------------------------------------------------
-        if(false and opts.mode == Options::SearchMode::LNS or opts.mode == Options::SearchMode::SNBS)
+        if(opts.mode == Options::SearchMode::LNS or opts.mode == Options::SearchMode::SNBS)
         {
             IntDomainsRepresentations* solDomRepr;
             MemUtils::malloc(&solDomRepr);
@@ -254,7 +264,8 @@ int main(int argc, char * argv[])
             #else
             solutionFound = backtrackSearcher->getNextSolution();
             #endif
-            backtrackSearcher->deinitialize();
+            //backtrackSearcher->deinitialize(); // FIXME
+            assert(solutionFound);
             // Print/store the found solution.
             if (not onlyBestSolution)
             {
@@ -306,7 +317,7 @@ int main(int argc, char * argv[])
         {
             elapsedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
                             std::chrono::steady_clock::now() - startTime).count();
-            long searcherTimeout {timeout - elapsedTime};
+            long long searcherTimeout {timeout - elapsedTime};
             //-------------------------------------------------------------------------------
             // Get next solution (GPU/CPU)
             //-------------------------------------------------------------------------------
@@ -323,7 +334,11 @@ int main(int argc, char * argv[])
 
                 case Options::SearchMode::LNS:
                     #ifdef GPU
-                    Wrappers::getNextSolution<<<1, 1>>>(LNSSearcher, solutionFound, searcherTimeout);
+                    Wrappers::getNextSolution<<<neighborhoodsBlocksCount, DEFAULT_BLOCK_SIZE>>>
+                        (LNSSearcher, searcherTimeout);
+                    LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
+                    Wrappers::restoreBestSolution<<<LNSSearcher->variablesBlockCount, DEFAULT_BLOCK_SIZE>>>
+                        (LNSSearcher);
                     LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
                     #else
                     *solutionFound = LNSSearcher->getNextSolution(searcherTimeout);
@@ -364,8 +379,8 @@ int main(int argc, char * argv[])
                     printer.print(bestSolution, *fzModel);
                 }
             }
+            if(opts.mode == Options::SearchMode::LNS) break;
         }
-
         // Print best solution.
         if(onlyBestSolution)
         {

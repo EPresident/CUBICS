@@ -26,9 +26,9 @@ cudaGlobal void Wrappers::getNextSolution(IntBacktrackSearcher* backtrackSearche
 //----------------------
 // Integer LNS searcher
 //----------------------
-cudaGlobal void Wrappers::getNextSolution(IntLNSSearcher* LNSSearcher, bool* solutionFound, long timeout)
+cudaGlobal void Wrappers::getNextSolution(IntLNSSearcher* LNSSearcher, long long timeout)
 {
-    *solutionFound = LNSSearcher->getNextSolution(timeout);
+    LNSSearcher->getNextSolution(timeout);
 }
 
 cudaGlobal void Wrappers::saveBestSolution(IntLNSSearcher* LNSSearcher, IntNeighborhood* nbh)
@@ -100,7 +100,7 @@ cudaGlobal void Wrappers::checkSatisfiedConstraints(IntConstraintsPropagator* pr
 {
     propagator->checkSatisfiedConstraints();
 }
-
+//--------------------------------------------------------------------------------------------------------------
 cudaGlobal void Wrappers::propagateConstraints(IntConstraintsPropagator* propagator, IntNeighborhood* nbh, bool* satisfiableModel)
 {
     *satisfiableModel = propagator->propagateConstraints(nbh);

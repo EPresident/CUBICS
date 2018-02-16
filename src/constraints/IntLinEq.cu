@@ -4,6 +4,7 @@
 #include <data_structures/Vector.h>
 #include <constraints/IntConstraints.h>
 #include <utils/LogUtils.h>
+#include <iostream>
 
 cudaDevice void IntLinEq::propagate(IntConstraints* constraints, int index, IntVariables* variables)
 {
@@ -133,7 +134,8 @@ cudaDevice void IntLinEq::propagate(IntConstraints* constraints, int index, IntV
             else
             {
                 // This should NEVER happen
-                LogUtils::error(__PRETTY_FUNCTION__, "Trying to change a non-neighbor!");
+                //LogUtils::error(__PRETTY_FUNCTION__, "Trying to change a non-neighbor!");
+                printf("Warning: trying to change non-neighbor variable %d in IntLinEq(%d)\n", variableIndex, index);
             }
             
         }
@@ -154,7 +156,8 @@ cudaDevice void IntLinEq::propagate(IntConstraints* constraints, int index, IntV
             else
             {
                 // This should NEVER happen
-                LogUtils::error(__PRETTY_FUNCTION__, "Trying to change a non-neighbor!");
+                //LogUtils::error(__PRETTY_FUNCTION__, "Trying to change a non-neighbor!");
+                printf("Warning: trying to change non-neighbor variable %d in IntLinEq(%d)\n", variableIndex, index);
             }
         }
     }

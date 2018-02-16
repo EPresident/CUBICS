@@ -19,7 +19,6 @@ struct IntLNSSearcher
 {
     enum States
     {        
-        Initialized,
         VariableNotChosen,
         VariableChosen, ///< A variable has been chosen
         ValueChosen, ///< A value for the variable has been chosen
@@ -50,12 +49,14 @@ struct IntLNSSearcher
     IntDomainsRepresentations* originalDomains;
     /// Best solution found so far
     IntDomainsRepresentations* bestSolution;
+    /// Mutex lock for \a bestSolution
+    Lock bestSolLock;
     
     Vector<IntNeighborhood*> neighborhoods;
     
     #ifdef GPU
         /// CUDA blocks needed to handle all the variables
-        int varibalesBlockCount;
+        int variablesBlockCount;
         /// CUDA blocks needed to handle all the neighbors
         int neighborsBlockCount;
     #endif

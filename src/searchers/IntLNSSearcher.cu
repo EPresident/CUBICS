@@ -83,10 +83,11 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
         }
         neighVars.push_back(optVariable);
         // Init neighborhood
-        IntNeighborhood newNeigh;
-        newNeigh.initialize(&neighVars, originalDomains);
+        IntNeighborhood* newNeigh;
+        MemUtils::malloc(&newNeigh);
+        newNeigh->initialize(&neighVars, originalDomains, constraints->count);
 
-        neighborhoods.push_back(&newNeigh);
+        neighborhoods.push_back(newNeigh);
         // Clear vectors for reuse
         shuffledVars.clear();
         neighVars.clear();
@@ -98,25 +99,29 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
 
     // init chosen variables/values
     chosenVariables.initialize(numNeighborhoods);
+    chosenVariables.resize(numNeighborhoods);
     for(int i = 0; i < numNeighborhoods; i++)
     {
         chosenVariables[i].initialize(unassignAmount+1);
     }
     chosenValues.initialize(numNeighborhoods);
+    chosenValues.resize(numNeighborhoods);
     for(int i = 0; i < numNeighborhoods; i++)
     {
         chosenValues[i].initialize(unassignAmount+1);
     }
+    
+    propagator.initialize(variables, constraints);
 
     #ifdef GPU
         timer.initialize();
     #endif
 
     unassignmentRate = unassignRate;
-    LNSState = IntLNSSearcher::Initialized;
+    LNSState = IntLNSSearcher::VariableNotChosen;
 
 #ifdef GPU
-    varibalesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
+    variablesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
     neighborsBlockCount = KernelUtils::getBlockCount(numNeighborhoods, DEFAULT_BLOCK_SIZE);
 #endif
 
@@ -126,12 +131,14 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     //------------------------------------------------------------------
     //------------------------------------------------------------------
     stacks.initialize(numNeighborhoods);
-    for(int s = 0; s < stacks.size; s++)
+    for(int s = 0; s < stacks.capacity; s++)
     {
-        IntBacktrackStack newStack;
-        newStack.initialize(&neighborhoods.at(s)->neighRepr);
-        stacks.push_back(&newStack);
+        IntBacktrackStack* newStack;
+        MemUtils::malloc(&newStack);
+        newStack->initialize(&neighborhoods.at(s)->neighRepr);
+        stacks.push_back(newStack);
     }
+    assert(stacks.size = numNeighborhoods); 
     //------------------------------------------------------------------
     //------------------------------------------------------------------
 }
@@ -176,33 +183,30 @@ void IntLNSSearcher::deinitialize()
 cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
 {
     #ifdef GPU
-    int taskIndex = KernelUtils::getTaskIndex();
+    int taskIndex = KernelUtils::getTaskIndex(true);
+    if(taskIndex < 0 or taskIndex >= neighborhoods.size) return;
+    assert(taskIndex >= 0 and taskIndex < neighborhoods.size);
+    printf("I'm LNS-boi N°%d\n",taskIndex);
     #endif
     bool solutionFound = false;
-    bool neighborhoodExplored = false;
     IntNeighborhood* neighborhood = neighborhoods.at(taskIndex);
     IntBacktrackStack* stack = stacks[taskIndex];
-    int backtrackingLevel;
+    int backtrackingLevel = 0;
     int chosenValue;
     
+    int iter = 0;
     
-    while (not solutionFound 
-           and not neighborhoodExplored
-           and timeout > 0
+    if(taskIndex == 0) bestSolLock.initialize();
+    
+    while ( backtrackingLevel >= 0
+            and timeout > 0
           )
     {
         // Setup timer to compute this iteration's duration
-        //timer.setStartTime();
-        
+        //if(taskIndex == 0) timer.setStartTime();
+        iter++;
         switch (LNSState)
         {
-            case Initialized:
-            {
-                // ? 
-                LNSState = VariableNotChosen;
-            }
-            break;
-
             case VariableNotChosen:
             {
                 // Backup current state (GPU/CPU)
@@ -282,6 +286,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                     {
                         solutionFound = true;
                         // Shrink optimization bounds
+                        bestSolLock.lock();
                         if (searchType == Maximization)
                         {
                             constraints->parameters[optConstraint][0] = variables->domains.getMin(optVariable, neighborhood) + 1;
@@ -290,6 +295,15 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                         {
                             constraints->parameters[optConstraint][0] = variables->domains.getMin(optVariable, neighborhood) - 1;
                         }
+                        
+                        // Record best solution
+                        #ifdef GPU
+                        Wrappers::saveBestSolution<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this, neighborhood);
+                        cudaDeviceSynchronize();
+                        bestSolLock.unlock();
+                        #else
+                        saveBestSolution(neighborhood);
+                        #endif
                     }
                 }
             }
@@ -299,7 +313,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
             {
                 // Revert last value choice on the stack (GPU/CPU)
                 #ifdef GPU
-                Wrappers::restoreState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(stack, backtrackingLevel);
+                Wrappers::restoreState<<<neighborsBlockCount, DEFAULT_BLOCK_SIZE>>>(stack, backtrackingLevel);
                 cudaDeviceSynchronize();
                 #else
                 stack->restoreState(backtrackingLevel);
@@ -316,9 +330,8 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 {
                     // All values have been used, backtrack.
                     // Clear current level state from the stack (GPU/CPU)
-                    neighborhoodExplored = true;
                     #ifdef GPU
-                    Wrappers::clearState<<<varibalesBlockCount, DEFAULT_BLOCK_SIZE>>>(stack, backtrackingLevel);
+                    Wrappers::clearState<<<neighborsBlockCount, DEFAULT_BLOCK_SIZE>>>(stack, backtrackingLevel);
                     cudaDeviceSynchronize();
                     #else
                     stack->clearState(backtrackingLevel);
@@ -332,9 +345,9 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
             }
             break;
         }
-        
+
         // Compute elapsed time and subtract it from timeout
-        timeout -= timer.getElapsedTime();
+        //timeout -= timer.getElapsedTime();
         
     }
 
