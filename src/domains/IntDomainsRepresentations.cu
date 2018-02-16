@@ -22,7 +22,7 @@ void IntDomainsRepresentations::deinitialize()
     {
         bitvectors[i].deinitialize();
     }
-    bitvectors.initialize();
+    bitvectors.deinitialize();
 }
 
 /** 
