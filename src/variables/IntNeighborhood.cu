@@ -3,11 +3,11 @@
 #include <cassert>
 #include <wrappers/Wrappers.h>
 
-void IntNeighborhood::initialize(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr)
+void IntNeighborhood::initialize(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr, int constraints)
 {
     this->count = neighbors->size;
     // Init bitvector
-    neighMask.initialize(count, false);
+    neighMask.initialize(originalRepr->minimums.size, false);
     // Init domains representations
     neighRepr.initialize(count);
     // Init map
@@ -20,6 +20,13 @@ void IntNeighborhood::initialize(Vector<int>* neighbors, IntDomainsRepresentatio
     #ifdef GPU
     variablesBlocks = KernelUtils::getBlockCount(count, DEFAULT_BLOCK_SIZE, true);
     #endif
+    // Init constraints-to-propagate flags
+    constraintToPropagate.initialize(constraints);
+    constraintToPropagate.resize(constraints);
+    for (int ci = 0; ci < constraints; ci += 1)
+    {
+        constraintToPropagate[ci] = false;
+    }
     // Push neighbors
     for (int i = 0; i < neighbors->size; i += 1)
     {
@@ -49,6 +56,7 @@ cudaHostDevice void IntNeighborhood::deinitialize()
     map.deinitialize();
     events.deinitialize();
     neighActions.deinitialize();
+    constraintToPropagate.deinitialize();
 }
 
 cudaDevice void IntNeighborhood::getBinding(int var, int* repr)

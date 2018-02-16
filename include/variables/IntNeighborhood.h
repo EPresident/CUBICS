@@ -36,7 +36,7 @@ struct IntNeighborhood
      * If map[i]=j, then variable j has its neigh repr at index i.
      */ 
     Vector<int> map;
-    /// A list of domain events (domain changed) in chronological order.
+    /// A list of domain events (domain changed)
     Vector<int> events;
     //-----------------------------------------------------------
     // Propagation stuff
@@ -49,7 +49,7 @@ struct IntNeighborhood
     bool someConstraintsToPropagate;
     bool allConstraintsSatisfied;
 
-    cudaHostDevice void initialize(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr);
+    cudaHostDevice void initialize(Vector<int>* neighbors, IntDomainsRepresentations* originalRepr, int constraints);
     cudaHostDevice void deinitialize();
 
     /**
@@ -67,7 +67,7 @@ struct IntNeighborhood
     /// Return true if \a var is in the neighborhood
     cudaDevice inline bool isNeighbor(int var)
     {
-        assert(var > 0 and var < count);
+        //assert(var > 0 and var < count);
         return neighMask.get(var);
     }
 };
