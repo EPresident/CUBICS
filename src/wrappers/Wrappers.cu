@@ -18,7 +18,7 @@ cudaGlobal void Wrappers::clearState(IntBacktrackStack* backtrackStack, int back
 }
 
 //Integer backtracking searcher
-cudaGlobal void Wrappers::getNextSolution(IntBacktrackSearcher* backtrackSearcher, bool* solutionFound, long timeout)
+cudaGlobal void Wrappers::getNextSolution(IntBacktrackSearcher* backtrackSearcher, bool* solutionFound, long long timeout)
 {
     *solutionFound = backtrackSearcher->getNextSolution(timeout);
 }

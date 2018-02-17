@@ -14,7 +14,7 @@ namespace Wrappers
     cudaGlobal void clearState(IntBacktrackStack* backtrackStack, int backtrackingkLevel);
 
     //Integer backtracking searcher
-    cudaGlobal void getNextSolution(IntBacktrackSearcher* backtrackSearcher, bool* solutionFound, long timeout);
+    cudaGlobal void getNextSolution(IntBacktrackSearcher* backtrackSearcher, bool* solutionFound, long long timeout);
     
     //Integer LNS searcher
     cudaGlobal void getNextSolution(IntLNSSearcher* LNSSearcher, long long timeout);
