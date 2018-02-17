@@ -10,9 +10,10 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
 {
     variables = fzModel->intVariables;
     constraints = fzModel->intConstraints;
-    randSeed = 1337; // FIXME
+    randSeed = /*1337*/ 1234; // FIXME
     
     this->originalDomains = originalDomains;
+    // bestSolution is set by main ATM
     
     unassignAmount = variables->count*unassignRate;
     if(unassignAmount < 1) unassignAmount = 1;
@@ -122,6 +123,7 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
 
 #ifdef GPU
     variablesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
+    variablesBlockCountDivergence = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE, true);
     neighborsBlockCount = KernelUtils::getBlockCount(numNeighborhoods, DEFAULT_BLOCK_SIZE);
 #endif
 
@@ -193,6 +195,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
     IntBacktrackStack* stack = stacks[taskIndex];
     int backtrackingLevel = 0;
     int chosenValue;
+    int currentVar;
     
     int iter = 0;
     
@@ -219,6 +222,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 stack->saveState(backtrackingLevel);
                 #endif
                 // "Choose" a variable to assign
+                currentVar = neighborhood->map[backtrackingLevel];
                 chosenVariables[taskIndex].push_back(neighborhood->map[backtrackingLevel]);
                 LNSState = VariableChosen;
 
@@ -231,6 +235,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 if (not variables->domains.isSingleton(chosenVariables[taskIndex].back(), neighborhood))
                 {
                     // Not a singleton, use the chooser
+                    //assert(chosenValues[taskIndex].size == backtrackingLevel);
                     if (valuesChooser.getFirstValue(chosenVariables[taskIndex].back(), &chosenValue, neighborhood))
                     {
                         chosenValues[taskIndex].push_back(chosenValue);
@@ -245,6 +250,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 else
                 {
                     // Domain's a singleton, choose the only possible value.
+                    chosenValue = variables->domains.getMin(chosenVariables[taskIndex].back(), neighborhood);
                     chosenValues[taskIndex].push_back(variables->domains.getMin(chosenVariables[taskIndex].back(), neighborhood));
                     // Nothing has been changed, so no need to propagate.
                     LNSState = SuccessfulPropagation;
@@ -285,6 +291,8 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                     if (propagator.verifyConstraints(neighborhood))
                     {
                         solutionFound = true;
+                        printf("LNS-boi %d found solution with cost %d\n", taskIndex,
+                         variables->domains.getMin(optVariable, neighborhood));
                         // Shrink optimization bounds
                         bestSolLock.lock();
                         if (searchType == Maximization)
@@ -298,7 +306,9 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                         
                         // Record best solution
                         #ifdef GPU
-                        Wrappers::saveBestSolution<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this, neighborhood);
+                        Wrappers::saveBestSolution
+                            <<<variablesBlockCountDivergence, DEFAULT_BLOCK_SIZE>>>
+                            (this, neighborhood);
                         cudaDeviceSynchronize();
                         bestSolLock.unlock();
                         #else
@@ -319,6 +329,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 stack->restoreState(backtrackingLevel);
                 #endif
                 // Choose another value, if possible
+                //assert(chosenValues[taskIndex].size == backtrackingLevel+1);
                 if (valuesChooser.getNextValue(chosenVariables[taskIndex].back(), chosenValues[taskIndex].back(), &chosenValue, neighborhood))
                 {
                     // There's another value
@@ -339,6 +350,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                     // Return to the previous backtrack level
                     // and resume the search from there
                     backtrackingLevel -= 1;
+                    if(backtrackingLevel < 0) printf("Neighborhood %d explored.\n",taskIndex);
                     chosenVariables[taskIndex].pop_back();
                     chosenValues[taskIndex].pop_back();
                 }
@@ -361,8 +373,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
 cudaDevice void IntLNSSearcher::saveBestSolution(IntNeighborhood* neighborhood)
 {
 #ifdef GPU
-    
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(true);
     if (vi >= 0 and vi < variables->count)
 #else
     for (int vi = 0; vi < variables->count; vi += 1)

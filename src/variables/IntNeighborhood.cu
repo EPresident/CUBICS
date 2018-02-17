@@ -18,7 +18,7 @@ void IntNeighborhood::initialize(Vector<int>* neighbors, IntDomainsRepresentatio
     neighActions.initialize(count);
     // get required blocks
     #ifdef GPU
-    variablesBlocks = KernelUtils::getBlockCount(count, DEFAULT_BLOCK_SIZE, true);
+    variablesBlocks = KernelUtils::getBlockCount(count, DEFAULT_BLOCK_SIZE);
     #endif
     // Init constraints-to-propagate flags
     constraintToPropagate.initialize(constraints);

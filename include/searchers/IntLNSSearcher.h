@@ -57,6 +57,8 @@ struct IntLNSSearcher
     #ifdef GPU
         /// CUDA blocks needed to handle all the variables
         int variablesBlockCount;
+        /// CUDA blocks needed to handle all the variables (with divergence)
+        int variablesBlockCountDivergence;
         /// CUDA blocks needed to handle all the neighbors
         int neighborsBlockCount;
     #endif

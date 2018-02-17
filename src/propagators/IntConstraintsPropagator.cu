@@ -90,8 +90,9 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints(IntNeighborhood* 
 {
     nbh->someEmptyDomain = false;
     nbh->someConstraintsToPropagate = false;
+    int neighborsBlockCount {KernelUtils::getBlockCount(nbh->map.size, DEFAULT_BLOCK_SIZE)};
 #ifdef GPU
-    Wrappers::setConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+    Wrappers::setConstraintsToPropagate<<<constraintsBlockCountDivergence, DEFAULT_BLOCK_SIZE>>>(this, nbh);
     cudaDeviceSynchronize();
 #else
     setConstraintsToPropagate(nbh);
@@ -107,14 +108,14 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints(IntNeighborhood* 
 #endif
 
 #ifdef GPU
-        Wrappers::clearDomainsEvents<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+        Wrappers::clearDomainsEvents<<<neighborsBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
         cudaDeviceSynchronize();
 #else
         clearDomainsEvents(nbh);
 #endif
 
 #ifdef GPU
-        Wrappers::updateDomains<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+        Wrappers::updateDomains<<<neighborsBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
         cudaDeviceSynchronize();
 #else
         updateDomains(nbh);
@@ -129,7 +130,7 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints(IntNeighborhood* 
 
         nbh->someEmptyDomain = false;
 #ifdef GPU
-        Wrappers::checkEmptyDomains<<<variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+        Wrappers::checkEmptyDomains<<<neighborsBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
         cudaDeviceSynchronize();
 #else
         checkEmptyDomains(nbh);
@@ -139,7 +140,7 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints(IntNeighborhood* 
         {
             nbh->someConstraintsToPropagate = false;
 #ifdef GPU
-            Wrappers::setConstraintsToPropagate<<<constraintsBlockCount, DEFAULT_BLOCK_SIZE>>>(this, nbh);
+            Wrappers::setConstraintsToPropagate<<<constraintsBlockCountDivergence, DEFAULT_BLOCK_SIZE>>>(this, nbh);
             cudaDeviceSynchronize();
 #else
             setConstraintsToPropagate(nbh);
@@ -181,7 +182,7 @@ cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
 cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate(IntNeighborhood* nbh)
 {
 #ifdef GPU
-    int ci = KernelUtils::getTaskIndex();
+    int ci = KernelUtils::getTaskIndex(true);
     if (ci >= 0 and ci < constraints->count)
 #else
     for (int ci = 0; ci < constraints->count; ci += 1)
@@ -257,12 +258,12 @@ cudaDevice void IntConstraintsPropagator::clearDomainsEvents(IntNeighborhood* nb
 {
 #ifdef GPU
     int vi = KernelUtils::getTaskIndex();
-    if (vi >= 0 and vi < variables->count and nbh->isNeighbor(vi))
+    if (vi >= 0 and vi < nbh->events.size)
 #else
-    for (int vi = 0; vi < variables->count and nbh->isNeighbor(vi); vi += 1)
+    for (int vi = 0; vi < nbh->events.size; vi += 1)
 #endif
     {
-        nbh->events[nbh->getRepresentationIndex(vi)] = IntDomains::EventTypes::None;
+        nbh->events[vi] = IntDomains::EventTypes::None;
     }
 }
 
@@ -286,12 +287,12 @@ cudaDevice void IntConstraintsPropagator::updateDomains(IntNeighborhood* nbh)
 {
 #ifdef GPU
     int vi = KernelUtils::getTaskIndex();
-    if (vi >= 0 and vi < variables->count and nbh->isNeighbor(vi))
+    if (vi >= 0 and vi < nbh->map.size)
 #else
-    for (int vi = 0; vi < variables->count and nbh->isNeighbor(vi); vi += 1)
+    for (int vi = 0; vi < nbh->map.size; vi += 1)
 #endif
     {
-        variables->domains.updateDomain(vi, nbh);
+        variables->domains.updateDomain(nbh->map[vi], nbh, vi);
     }
 }
 
@@ -341,12 +342,12 @@ cudaDevice void IntConstraintsPropagator::checkEmptyDomains(IntNeighborhood* nbh
 {
 #ifdef GPU
     int vi = KernelUtils::getTaskIndex();
-    if (vi >= 0 and vi < variables->count)
+    if (vi >= 0 and vi < nbh->map.size)
 #else
-    for (int vi = 0; vi < variables->count; vi += 1)
+    for (int vi = 0; vi < nbh->map.size; vi += 1)
 #endif
     {
-        if (nbh->isNeighbor(vi) and variables->domains.isEmpty(vi, nbh))
+        if (variables->domains.isEmpty(nbh->map[vi], nbh, vi))
         {
             nbh->someEmptyDomain = true;
         }

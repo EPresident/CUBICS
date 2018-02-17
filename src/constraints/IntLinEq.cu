@@ -125,7 +125,7 @@ cudaDevice void IntLinEq::propagate(IntConstraints* constraints, int index, IntV
             float alpha = (b - (sumPosCoeffLowValue - variableLowContribution) + sumNegCoeffHighValue) / static_cast<float>(variableCoefficient);
             float gamma = (b - (sumPosCoeffHighValue - variableHightContribution) + sumNegCoeffLowValue) / static_cast<float>(variableCoefficient);
 
-            if(neighVarIndex > 0)
+            if(neighVarIndex >= 0)
             {
                 // Variable in the neighborhood
                 nbh->neighActions.removeAnyGreaterThan(neighVarIndex, static_cast<int>(floor(alpha)));
@@ -134,7 +134,8 @@ cudaDevice void IntLinEq::propagate(IntConstraints* constraints, int index, IntV
             else
             {
                 // This should NEVER happen
-                //LogUtils::error(__PRETTY_FUNCTION__, "Trying to change a non-neighbor!");
+                assert(false);
+                LogUtils::error(__PRETTY_FUNCTION__, "Trying to change a non-neighbor!");
                 printf("Warning: trying to change non-neighbor variable %d in IntLinEq(%d)\n", variableIndex, index);
             }
             

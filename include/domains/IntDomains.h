@@ -70,5 +70,5 @@ struct IntDomains
     * Values outside the bounds and inside the "remove list" are dropped.
     */
     cudaDevice void updateDomain(int index);
-    cudaDevice void updateDomain(int index, IntNeighborhood* nbh);
+    cudaDevice void updateDomain(int index, IntNeighborhood* nbh, int reprIdx = -1);
 };
