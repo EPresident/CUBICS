@@ -117,7 +117,12 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     propagator.initialize(variables, constraints);
 
     #ifdef GPU
-        timer.initialize();
+        timers.initialize(numNeighborhoods);
+        timers.resize(numNeighborhoods);
+        for(int i = 0; i < numNeighborhoods; i++)
+        {
+            timers[i].initialize();
+        }
     #endif
 
     unassignmentRate = unassignRate;
@@ -204,21 +209,20 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
     int chosenValue;
     int currentVar;
     
-    int iter = 0;
+    long long timeLeft = timeout;
     
     if(taskIndex == 0) bestSolLock.initialize();
     
     while ( backtrackingLevel >= 0
-            and timeout > 0
+            and timeLeft > 0
           )
     {
         // Setup timer to compute this iteration's duration
-        //if(taskIndex == 0) timer.setStartTime();
+        timers[taskIndex].setStartTime();
         switch (LNSStates[taskIndex])
         {
             case VariableNotChosen:
             {
-                iter = 0;
                 // Backup current state (GPU/CPU)
                 #ifdef GPU
                 Wrappers::saveState
@@ -267,7 +271,6 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
             
             case ValueChosen:
             {
-                iter++;
                 // A domain has been changed, need to propagate.
                 bool noEmptyDomains = propagator.propagateConstraints(neighborhood);
                 
@@ -321,6 +324,8 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                         #else
                         saveBestSolution(neighborhood);
                         #endif
+                        printf("LNS-boi %d saved solution with cost %d\n", taskIndex,
+                         variables->domains.getMin(optVariable, neighborhood));
                     }
                 }
             }
@@ -367,8 +372,13 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
         }
 
         // Compute elapsed time and subtract it from timeout
-        //timeout -= timer.getElapsedTime();
+        timeLeft -= timers[taskIndex].getElapsedTime();
         
+    }
+    
+    if(timeLeft <= 0)
+    {
+        printf(">>> GPU Timed out! <<<\n");
     }
 
     return solutionFound;

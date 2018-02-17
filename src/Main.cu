@@ -292,6 +292,7 @@ int main(int argc, char * argv[])
                 Vector<unsigned int>* bitvector = &intDomRepr->bitvectors[vi];
                 solDomRepr->push(min, max, offset, version, bitvector);
             }
+            
             if(opts.mode == Options::SearchMode::LNS)
             {
                 LNSSearcher->bestSolution = solDomRepr;
@@ -302,6 +303,9 @@ int main(int argc, char * argv[])
             }
             elapsedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
                             std::chrono::steady_clock::now() - startTime).count();
+            cout << "Initial solution found (" << elapsedTime / 1000000000.0 << "s)." << endl;
+            cout << bestSolution.rdbuf();
+            cout << "----------" << endl;
         }
         //-------------------------------------------------------------------------------
         /*

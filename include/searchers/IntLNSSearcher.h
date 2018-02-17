@@ -39,8 +39,7 @@ struct IntLNSSearcher
     int unassignAmount;
     
     /// Device-Host timers
-    //Vector<TimerUtils> timers;
-    TimerUtils timer;
+    Vector<TimerUtils> timers;
     
     IntVariables* variables;
     IntConstraints* constraints;
