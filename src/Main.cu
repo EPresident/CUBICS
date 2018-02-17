@@ -71,7 +71,7 @@ int main(int argc, char * argv[])
                 propagator, satisfiableModel);
             LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
             #else
-            *satisfiableModel = SNBSearcher->propagator.propagateConstraints();
+            *satisfiableModel = backtrackSearcher->propagator.propagateConstraints();
             #endif
             break;
 

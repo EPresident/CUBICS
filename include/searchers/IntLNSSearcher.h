@@ -26,7 +26,7 @@ struct IntLNSSearcher
         ValueChecked ///< Need to find another value for the same variable
     };
 
-    int LNSState;
+    Vector<int> LNSStates;
     /// PRNG seed
     unsigned int randSeed;
     /**

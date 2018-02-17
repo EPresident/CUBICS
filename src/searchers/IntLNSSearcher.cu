@@ -10,13 +10,15 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
 {
     variables = fzModel->intVariables;
     constraints = fzModel->intConstraints;
-    randSeed = /*1337*/ 1234; // FIXME
+    randSeed = 1337 /*1234*/; // FIXME
     
     this->originalDomains = originalDomains;
     // bestSolution is set by main ATM
     
     unassignAmount = variables->count*unassignRate;
     if(unassignAmount < 1) unassignAmount = 1;
+    
+    valuesChooser.initialzie(IntValuesChooser::InOrder, variables);
     
     // Check problem search type
     switch (fzModel->method())
@@ -119,7 +121,12 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     #endif
 
     unassignmentRate = unassignRate;
-    LNSState = IntLNSSearcher::VariableNotChosen;
+    
+    LNSStates.initialize(numNeighborhoods);
+    for(int i = 0; i < numNeighborhoods; i++)
+    {
+        LNSStates.push_back(IntLNSSearcher::VariableNotChosen);
+    }
 
 #ifdef GPU
     variablesBlockCount = KernelUtils::getBlockCount(variables->count, DEFAULT_BLOCK_SIZE);
@@ -186,7 +193,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
 {
     #ifdef GPU
     int taskIndex = KernelUtils::getTaskIndex(true);
-    if(taskIndex < 0 or taskIndex >= neighborhoods.size) return;
+    if(taskIndex < 0 or taskIndex >= neighborhoods.size) return false;
     assert(taskIndex >= 0 and taskIndex < neighborhoods.size);
     printf("I'm LNS-boi N°%d\n",taskIndex);
     #endif
@@ -207,11 +214,11 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
     {
         // Setup timer to compute this iteration's duration
         //if(taskIndex == 0) timer.setStartTime();
-        iter++;
-        switch (LNSState)
+        switch (LNSStates[taskIndex])
         {
             case VariableNotChosen:
             {
+                iter = 0;
                 // Backup current state (GPU/CPU)
                 #ifdef GPU
                 Wrappers::saveState
@@ -224,7 +231,8 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 // "Choose" a variable to assign
                 currentVar = neighborhood->map[backtrackingLevel];
                 chosenVariables[taskIndex].push_back(neighborhood->map[backtrackingLevel]);
-                LNSState = VariableChosen;
+
+                LNSStates[taskIndex] = VariableChosen;
 
             }
             break;
@@ -235,12 +243,11 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 if (not variables->domains.isSingleton(chosenVariables[taskIndex].back(), neighborhood))
                 {
                     // Not a singleton, use the chooser
-                    //assert(chosenValues[taskIndex].size == backtrackingLevel);
                     if (valuesChooser.getFirstValue(chosenVariables[taskIndex].back(), &chosenValue, neighborhood))
                     {
                         chosenValues[taskIndex].push_back(chosenValue);
                         variables->domains.fixValue(chosenVariables[taskIndex].back(), chosenValues[taskIndex].back(), neighborhood);
-                        LNSState = ValueChosen;
+                        LNSStates[taskIndex] = ValueChosen;
                     }
                     else
                     {
@@ -253,24 +260,25 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                     chosenValue = variables->domains.getMin(chosenVariables[taskIndex].back(), neighborhood);
                     chosenValues[taskIndex].push_back(variables->domains.getMin(chosenVariables[taskIndex].back(), neighborhood));
                     // Nothing has been changed, so no need to propagate.
-                    LNSState = SuccessfulPropagation;
+                    LNSStates[taskIndex] = SuccessfulPropagation;
                 }
             }
             break;
             
             case ValueChosen:
             {
+                iter++;
                 // A domain has been changed, need to propagate.
                 bool noEmptyDomains = propagator.propagateConstraints(neighborhood);
-
+                
                 if (noEmptyDomains)
                 {
-                    LNSState = SuccessfulPropagation;
+                    LNSStates[taskIndex] = SuccessfulPropagation;
                 }
                 else
                 {
                     // A domain has been emptied, try another value.
-                    LNSState = ValueChecked;
+                    LNSStates[taskIndex] = ValueChecked;
                 }
             }
             break;
@@ -281,13 +289,12 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 {
                     // Not all variables have been assigned, move to the next
                     backtrackingLevel += 1;
-                    LNSState = VariableNotChosen;
+                    LNSStates[taskIndex] = VariableNotChosen;
                 }
                 else
                 {
                     // All variables assigned
-                    LNSState = ValueChecked;
-
+                    LNSStates[taskIndex] = ValueChecked;
                     if (propagator.verifyConstraints(neighborhood))
                     {
                         solutionFound = true;
@@ -329,13 +336,14 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
                 stack->restoreState(backtrackingLevel);
                 #endif
                 // Choose another value, if possible
-                //assert(chosenValues[taskIndex].size == backtrackingLevel+1);
-                if (valuesChooser.getNextValue(chosenVariables[taskIndex].back(), chosenValues[taskIndex].back(), &chosenValue, neighborhood))
+                if (valuesChooser.getNextValue(chosenVariables[taskIndex].back(),
+                    chosenValues[taskIndex].back(), &chosenValue, neighborhood))
                 {
                     // There's another value
                     chosenValues[taskIndex].back() = chosenValue;
-                    variables->domains.fixValue(chosenVariables[taskIndex].back(), chosenValues[taskIndex].back(), neighborhood);
-                    LNSState = ValueChosen;
+                    variables->domains.fixValue(chosenVariables[taskIndex].back(),
+                        chosenValues[taskIndex].back(), neighborhood);
+                    LNSStates[taskIndex] = ValueChosen;
                 }
                 else
                 {
