@@ -104,7 +104,7 @@ cudaDevice void IntLinLe::propagate(IntConstraints* constraints, int index, IntV
         {
             int variableLowContribution = variableCoefficient * variables->domains.getMin(variableIndex, nbh, neighVarIndex);
             float alpha = static_cast<float>(b - (sumPosCoeffLowValue - variableLowContribution) + sumNegCoeffHighValue) / static_cast<float>(variableCoefficient);
-            if(neighVarIndex > 0)
+            if(neighVarIndex >= 0)
             {
                 // Variable in the neighborhood
                 nbh->neighActions.removeAnyGreaterThan(neighVarIndex, static_cast<int>(floor(alpha)));
@@ -119,7 +119,7 @@ cudaDevice void IntLinLe::propagate(IntConstraints* constraints, int index, IntV
         {
             int variableLowContribution = (-variableCoefficient) * variables->domains.getMax(variableIndex, nbh, neighVarIndex);
             float beta = static_cast<float>(-b + sumPosCoeffLowValue - (sumNegCoeffHighValue - variableLowContribution)) / static_cast<float>(-variableCoefficient);
-            if(neighVarIndex > 0)
+            if(neighVarIndex >= 0)
             {
                 // Variable in the neighborhood
                 nbh->neighActions.removeAnyLesserThan(neighVarIndex, static_cast<int>(ceil(beta)));
