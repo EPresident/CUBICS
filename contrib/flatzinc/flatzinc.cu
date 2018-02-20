@@ -74,9 +74,9 @@ namespace FlatZinc {
 
   void
   FlatZincModel::newIntVar(IntVarSpec* vs) {
-    if (vs->domain.some() and !vs->domain.some()->interval) {
-      LogUtils::error(__PRETTY_FUNCTION__, "Set domains not supported");
-    }
+    //if (vs->domain.some() and !vs->domain.some()->interval) {
+    //  LogUtils::error(__PRETTY_FUNCTION__, "Set domains not supported");
+    //}
     if (vs->alias) {
       //intVariables[intVarCount++] = intVariables[vs->i];
       LogUtils::error(__PRETTY_FUNCTION__, "Alias variables not supported");
