@@ -109,11 +109,6 @@ cudaDevice void IntLinLe::propagate(IntConstraints* constraints, int index, IntV
                 // Variable in the neighborhood
                 nbh->neighActions.removeAnyGreaterThan(neighVarIndex, static_cast<int>(floor(alpha)));
             }
-            else
-            {
-                // This should NEVER happen
-                LogUtils::error(__PRETTY_FUNCTION__, "Trying to change a non-neighbor!");
-            }
         }
         else
         {
@@ -123,11 +118,6 @@ cudaDevice void IntLinLe::propagate(IntConstraints* constraints, int index, IntV
             {
                 // Variable in the neighborhood
                 nbh->neighActions.removeAnyLesserThan(neighVarIndex, static_cast<int>(ceil(beta)));
-            }
-            else
-            {
-                // This should NEVER happen
-                LogUtils::error(__PRETTY_FUNCTION__, "Trying to change a non-neighbor!");
             }
         }
     }

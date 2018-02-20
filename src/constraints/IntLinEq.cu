@@ -131,14 +131,6 @@ cudaDevice void IntLinEq::propagate(IntConstraints* constraints, int index, IntV
                 nbh->neighActions.removeAnyGreaterThan(neighVarIndex, static_cast<int>(floor(alpha)));
                 nbh->neighActions.removeAnyLesserThan(neighVarIndex, static_cast<int>(ceil(gamma)));
             }
-            else
-            {
-                // This should NEVER happen
-                assert(false);
-                LogUtils::error(__PRETTY_FUNCTION__, "Trying to change a non-neighbor!");
-                printf("Warning: trying to change non-neighbor variable %d in IntLinEq(%d)\n", variableIndex, index);
-            }
-            
         }
         else
         {
@@ -153,12 +145,6 @@ cudaDevice void IntLinEq::propagate(IntConstraints* constraints, int index, IntV
                 // Variable in the neighborhood
                 nbh->neighActions.removeAnyLesserThan(neighVarIndex, static_cast<int>(ceil(beta)));
                 nbh->neighActions.removeAnyGreaterThan(neighVarIndex, static_cast<int>(floor(delta)));
-            }
-            else
-            {
-                // This should NEVER happen
-                //LogUtils::error(__PRETTY_FUNCTION__, "Trying to change a non-neighbor!");
-                printf("Warning: trying to change non-neighbor variable %d in IntLinEq(%d)\n", variableIndex, index);
             }
         }
     }

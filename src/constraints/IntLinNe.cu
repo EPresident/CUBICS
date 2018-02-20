@@ -78,11 +78,6 @@ cudaDevice void IntLinNe::propagate(IntConstraints* constraints, int index, IntV
                 nbh->neighActions.removeElement(nbh->getRepresentationIndex(
                     constraintVariables->at(notFixedVariableIndex)), toRemove);
             }
-            else
-            {
-                // This should NEVER happen
-                LogUtils::error(__PRETTY_FUNCTION__, "Trying to change a non-neighbor!");
-            }
         }
     }
 }
