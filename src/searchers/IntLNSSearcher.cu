@@ -130,7 +130,7 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     LNSStates.initialize(numNeighborhoods);
     for(int i = 0; i < numNeighborhoods; i++)
     {
-        LNSStates.push_back(IntLNSSearcher::VariableNotChosen);
+        LNSStates.push_back(IntLNSSearcher::Initialized);
     }
 
 #ifdef GPU
@@ -221,6 +221,23 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
         timers[taskIndex].setStartTime();
         switch (LNSStates[taskIndex])
         {
+            case Initialized:
+            {
+                bool noEmptyDomains = propagator.propagateConstraints(neighborhood);
+                
+                if (noEmptyDomains)
+                {
+                    LNSStates[taskIndex] = VariableNotChosen;
+                    printf("LNS-boi N°%d ready\n",taskIndex);
+                }
+                else
+                {
+                    // A domain has been emptied, try another value.
+                    printf("LNS-boi %d has an empty starting domain!\n", taskIndex);
+                    return false;
+                }
+            }
+            break;
             case VariableNotChosen:
             {
                 // Backup current state (GPU/CPU)
@@ -378,7 +395,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
     
     if(timeLeft <= 0)
     {
-        printf(">>> GPU Timed out! <<<\n");
+        printf(">>> GPU Timed out! (%d)<<<\n", taskIndex);
     }
 
     return solutionFound;

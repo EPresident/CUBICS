@@ -19,6 +19,7 @@ struct IntLNSSearcher
 {
     enum States
     {        
+        Initialized,
         VariableNotChosen,
         VariableChosen, ///< A variable has been chosen
         ValueChosen, ///< A value for the variable has been chosen
