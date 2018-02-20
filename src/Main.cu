@@ -41,7 +41,7 @@ int main(int argc, char * argv[])
     cout << "Timeout: " << opts.timeout << " ms" << endl ;
 
     // Number of neighborhoods processed in parallel
-    int neighborhoodsAmount = 2;
+    int neighborhoodsAmount = 32;
     int neighborhoodsBlocksCount = KernelUtils::getBlockCount(neighborhoodsAmount, DEFAULT_BLOCK_SIZE, true);
 
     //-------------------------------------------------------------------------------
