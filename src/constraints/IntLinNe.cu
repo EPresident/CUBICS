@@ -72,7 +72,7 @@ cudaDevice void IntLinNe::propagate(IntConstraints* constraints, int index, IntV
         if (toRemove % constraintParameters->at(notFixedVariableIndex) == 0)
         {
             toRemove /= constraintParameters->at(notFixedVariableIndex);
-            if(nbh->isNeighbor(notFixedVariableIndex) > 0)
+            if(nbh->isNeighbor(constraintVariables->at(notFixedVariableIndex)))
             {
                 // Variable in the neighborhood
                 nbh->neighActions.removeElement(nbh->getRepresentationIndex(
