@@ -161,7 +161,7 @@ cudaDevice bool IntConstraintsPropagator::propagateConstraints(IntNeighborhood* 
 cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
 {
 #ifdef GPU
-    int ci = KernelUtils::getTaskIndex();
+    int ci = KernelUtils::getTaskIndex(THREAD_ID);
     if (ci >= 0 and ci < constraints->count)
 #else
     for (int ci = 0; ci < constraints->count; ci += 1)
@@ -182,7 +182,7 @@ cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate()
 cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate(IntNeighborhood* nbh)
 {
 #ifdef GPU
-    int ci = KernelUtils::getTaskIndex(true);
+    int ci = KernelUtils::getTaskIndex(THREAD_ID, true);
     if (ci >= 0 and ci < constraints->count)
 #else
     for (int ci = 0; ci < constraints->count; ci += 1)
@@ -208,7 +208,7 @@ cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate(IntNeighborh
 cudaDevice void IntConstraintsPropagator::collectActions()
 {
 #ifdef GPU
-    int ci = KernelUtils::getTaskIndex(true);
+    int ci = KernelUtils::getTaskIndex(THREAD_ID, true);
     if (ci >= 0 and ci < constraints->count)
 #else
     for (int ci = 0; ci < constraints->count; ci += 1)
@@ -224,7 +224,7 @@ cudaDevice void IntConstraintsPropagator::collectActions()
 cudaDevice void IntConstraintsPropagator::collectActions(IntNeighborhood* nbh)
 {
 #ifdef GPU
-    int ci = KernelUtils::getTaskIndex(true);
+    int ci = KernelUtils::getTaskIndex(THREAD_ID, true);
     if (ci >= 0 and ci < constraints->count)
 #else
     for (int ci = 0; ci < constraints->count; ci += 1)
@@ -245,7 +245,7 @@ cudaDevice void IntConstraintsPropagator::collectActions(IntNeighborhood* nbh)
 cudaDevice void IntConstraintsPropagator::clearDomainsEvents()
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < variables->count)
 #else
     for (int vi = 0; vi < variables->count; vi += 1)
@@ -257,7 +257,7 @@ cudaDevice void IntConstraintsPropagator::clearDomainsEvents()
 cudaDevice void IntConstraintsPropagator::clearDomainsEvents(IntNeighborhood* nbh)
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < nbh->events.size)
 #else
     for (int vi = 0; vi < nbh->events.size; vi += 1)
@@ -274,7 +274,7 @@ cudaDevice void IntConstraintsPropagator::clearDomainsEvents(IntNeighborhood* nb
 cudaDevice void IntConstraintsPropagator::updateDomains()
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < variables->count)
 #else
     for (int vi = 0; vi < variables->count; vi += 1)
@@ -286,7 +286,7 @@ cudaDevice void IntConstraintsPropagator::updateDomains()
 cudaDevice void IntConstraintsPropagator::updateDomains(IntNeighborhood* nbh)
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < nbh->map.size)
 #else
     for (int vi = 0; vi < nbh->map.size; vi += 1)
@@ -300,7 +300,7 @@ cudaDevice void IntConstraintsPropagator::updateDomains(IntNeighborhood* nbh)
 cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
 {
 #if defined(GPU) && defined (__CUDA_ARCH__)
-    int ci = KernelUtils::getTaskIndex();
+    int ci = KernelUtils::getTaskIndex(THREAD_ID);
     if (ci >= 0 and ci < constraints->count)
 #else
     for (int ci = 0; ci < constraints->count; ci += 1)
@@ -312,7 +312,7 @@ cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate()
 cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate(IntNeighborhood* nbh)
 {
 #if defined(GPU) && defined (__CUDA_ARCH__)
-    int ci = KernelUtils::getTaskIndex();
+    int ci = KernelUtils::getTaskIndex(THREAD_ID);
     if (ci >= 0 and ci < constraints->count)
 #else
     for (int ci = 0; ci < constraints->count; ci += 1)
@@ -326,7 +326,7 @@ cudaHostDevice void IntConstraintsPropagator::clearConstraintsToPropagate(IntNei
 cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < variables->count)
 #else
     for (int vi = 0; vi < variables->count; vi += 1)
@@ -341,7 +341,7 @@ cudaDevice void IntConstraintsPropagator::checkEmptyDomains()
 cudaDevice void IntConstraintsPropagator::checkEmptyDomains(IntNeighborhood* nbh)
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < nbh->map.size)
 #else
     for (int vi = 0; vi < nbh->map.size; vi += 1)
@@ -384,7 +384,7 @@ cudaDevice bool IntConstraintsPropagator::verifyConstraints(IntNeighborhood* nbh
 cudaDevice void IntConstraintsPropagator::checkSatisfiedConstraints()
 {
 #ifdef GPU
-    int ci = KernelUtils::getTaskIndex(true);
+    int ci = KernelUtils::getTaskIndex(THREAD_ID, true);
     if (ci >= 0 and ci < constraints->count)
 #else
     for (int ci = 0; ci < constraints->count; ci += 1)
@@ -399,7 +399,7 @@ cudaDevice void IntConstraintsPropagator::checkSatisfiedConstraints()
 cudaDevice void IntConstraintsPropagator::checkSatisfiedConstraints(IntNeighborhood* nbh)
 {
 #ifdef GPU
-    int ci = KernelUtils::getTaskIndex(true);
+    int ci = KernelUtils::getTaskIndex(THREAD_ID, true);
     if (ci >= 0 and ci < constraints->count)
 #else
     for (int ci = 0; ci < constraints->count; ci += 1)

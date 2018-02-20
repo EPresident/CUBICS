@@ -197,10 +197,9 @@ void IntLNSSearcher::deinitialize()
 cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
 {
     #ifdef GPU
-    int taskIndex = KernelUtils::getTaskIndex(true);
+    int taskIndex = KernelUtils::getTaskIndex(THREAD_ID, true);
     if(taskIndex < 0 or taskIndex >= neighborhoods.size) return false;
     assert(taskIndex >= 0 and taskIndex < neighborhoods.size);
-    printf("I'm LNS-boi N°%d\n",taskIndex);
     #endif
     bool solutionFound = false;
     IntNeighborhood* neighborhood = neighborhoods.at(taskIndex);
@@ -408,7 +407,7 @@ cudaDevice bool IntLNSSearcher::getNextSolution(long long timeout)
 cudaDevice void IntLNSSearcher::saveBestSolution(IntNeighborhood* neighborhood)
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex(true);
+    int vi = KernelUtils::getTaskIndex(THREAD_ID, true);
     if (vi >= 0 and vi < variables->count)
 #else
     for (int vi = 0; vi < variables->count; vi += 1)
@@ -440,7 +439,7 @@ cudaDevice void IntLNSSearcher::saveBestSolution(IntNeighborhood* neighborhood)
 cudaDevice void IntLNSSearcher::restoreBestSolution()
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < variables->count)
 #else
     for (int vi = 0; vi < variables->count; vi += 1)

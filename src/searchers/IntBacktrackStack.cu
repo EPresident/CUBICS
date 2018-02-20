@@ -37,7 +37,7 @@ void IntBacktrackStack::deinitialize()
 cudaDevice void IntBacktrackStack::saveState(int backtrackLevel)
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < backupsStacks.size)
 #else
     for (int vi = 0; vi < backupsStacks.size; vi += 1)
@@ -64,7 +64,7 @@ cudaDevice void IntBacktrackStack::saveState(int backtrackLevel)
 cudaDevice void IntBacktrackStack::restoreState(int backtrackLevel)
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < backupsStacks.size)
 #else
     for (int vi = 0; vi < backupsStacks.size; vi += 1)
@@ -89,7 +89,7 @@ cudaDevice void IntBacktrackStack::restoreState(int backtrackLevel)
 cudaDevice void IntBacktrackStack::clearState(int backtrackLevel)
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < backupsStacks.size)
 #else
     for (int vi = 0; vi < backupsStacks.size; vi += 1)

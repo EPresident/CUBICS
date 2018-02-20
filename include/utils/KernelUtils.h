@@ -3,6 +3,8 @@
 
 #include <utils/GpuUtils.h>
 
+#define THREAD_ID ((blockDim.x * blockIdx.x) + threadIdx.x)
+
 namespace KernelUtils
 {
     /**
@@ -32,9 +34,9 @@ namespace KernelUtils
     * A warp is a "hardware" group of threads, typically of size 32. CUDA can't
     * schedule a thread group smaller than a warp of threads.
     */
-    cudaDevice inline int getTaskIndex(bool divergence = false)
+    cudaDevice inline int getTaskIndex(int threadIndex, bool divergence = false)
     {
-        int threadIndex = (blockDim.x * blockIdx.x) + threadIdx.x;
+        //int threadIndex = (blockDim.x * blockIdx.x) + threadIdx.x;
 
         if (divergence)
         {

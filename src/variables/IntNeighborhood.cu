@@ -62,7 +62,7 @@ cudaHostDevice void IntNeighborhood::deinitialize()
 cudaDevice void IntNeighborhood::getBinding(int var, int* repr)
 {
     #ifdef GPU
-    int i = KernelUtils::getTaskIndex();
+    int i = KernelUtils::getTaskIndex(THREAD_ID);
     if (i >= 0 and i < map.size)
     #else
     for (int i = 0; i < map.size; i += 1)

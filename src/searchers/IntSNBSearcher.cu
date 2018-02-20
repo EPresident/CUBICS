@@ -401,7 +401,7 @@ cudaDevice void IntSNBSearcher::backupInitialDomains()
 cudaDevice void IntSNBSearcher::saveBestSolution()
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < variables->count)
 #else
     for (int vi = 0; vi < variables->count; vi += 1)
@@ -431,7 +431,7 @@ cudaDevice void IntSNBSearcher::saveBestSolution()
 cudaDevice void IntSNBSearcher::restoreBestSolution()
 {
 #ifdef GPU
-    int vi = KernelUtils::getTaskIndex();
+    int vi = KernelUtils::getTaskIndex(THREAD_ID);
     if (vi >= 0 and vi < variables->count)
 #else
     for (int vi = 0; vi < variables->count; vi += 1)
