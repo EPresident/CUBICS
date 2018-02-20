@@ -188,8 +188,9 @@ cudaDevice void IntConstraintsPropagator::setConstraintsToPropagate(IntNeighborh
     for (int ci = 0; ci < constraints->count; ci += 1)
 #endif
     {
-        for (int vi = 0; vi < constraints->variables[ci].size  and nbh->isNeighbor(constraints->variables[ci][vi]); vi += 1)
+        for (int vi = 0; vi < constraints->variables[ci].size; vi += 1)
         {
+            if (not nbh->isNeighbor(constraints->variables[ci][vi])) continue;
             int event = nbh->events[nbh->getRepresentationIndex(constraints->variables[ci][vi])];
 
             if (event == IntDomains::EventTypes::Changed)
