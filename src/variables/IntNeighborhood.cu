@@ -12,6 +12,8 @@ void IntNeighborhood::initialize(Vector<int>* neighbors, IntDomainsRepresentatio
     neighRepr.initialize(count);
     // Init map
     map.initialize(count);
+    fullMap.initialize(originalRepr->minimums.size);
+    fullMap.resize(originalRepr->minimums.size);
     // Init events
     events.initialize(count);
     // init actions
@@ -35,6 +37,7 @@ void IntNeighborhood::initialize(Vector<int>* neighbors, IntDomainsRepresentatio
         neighMask.set(var);
         // Update variable-representation map
         map.push_back(var);
+        fullMap[var] = i;
         // Push to domain representation
         int min = originalRepr->minimums[var];
         int max = originalRepr->maximums[var];
@@ -77,17 +80,19 @@ cudaDevice void IntNeighborhood::getBinding(int var, int* repr)
 
 cudaDevice int IntNeighborhood::getRepresentationIndex(int var)
 {
-    int* reprIdx;
-    MemUtils::malloc(&reprIdx);
-    *reprIdx = -1;
-    #ifdef GPU
-        Wrappers::getBinding<<<variablesBlocks, DEFAULT_BLOCK_SIZE>>>(this, var, reprIdx);
-        cudaDeviceSynchronize();
-    #else
-        getBinding(var, reprIdx);
-    #endif
-    #ifndef NDEBUG
-        assert(*reprIdx >= 0);
-    #endif
-    return *reprIdx;
+    //~ int* reprIdx;
+    //~ MemUtils::malloc(&reprIdx);
+    //~ *reprIdx = -1;
+    //~ #ifdef GPU
+        //~ Wrappers::getBinding<<<variablesBlocks, DEFAULT_BLOCK_SIZE>>>(this, var, reprIdx);
+        //~ cudaDeviceSynchronize();
+    //~ #else
+        //~ getBinding(var, reprIdx);
+    //~ #endif
+    //~ #ifndef NDEBUG
+        //~ assert(*reprIdx >= 0);
+    //~ #endif
+    //~ return *reprIdx;
+    assert(isNeighbor(var));
+    return fullMap[var];
 }

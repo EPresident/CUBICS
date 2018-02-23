@@ -36,6 +36,12 @@ struct IntNeighborhood
      * If map[i]=j, then variable j has its neigh repr at index i.
      */ 
     Vector<int> map;
+    /**
+     * Full map from variable to representation.
+     * If map[v] = x, then x is the pointer to the domain representation
+     * of variable v in the neighborhood.
+     */
+    Vector<int> fullMap;
     /// A list of domain events (domain changed)
     Vector<int> events;
     //-----------------------------------------------------------
