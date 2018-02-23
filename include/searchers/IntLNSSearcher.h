@@ -101,6 +101,14 @@ struct IntLNSSearcher
     void initialize(FlatZinc::FlatZincModel* fzModel, double unassignRate,
                    int numNeighborhoods, IntDomainsRepresentations* originalDomains);
     void deinitialize();
+    
+    /**
+     * Prep the searcher to restart with a new set of neighbors,
+     * precomputed on CPU.
+     * 
+     * \param newNeighs a matrix of neighborhoods x neighbors
+     */
+    void reinitialize(int** newNeighs);
 
     /**
     * Find the next solution, unassigning variables when needed.

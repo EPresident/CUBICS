@@ -43,6 +43,8 @@ int main(int argc, char * argv[])
     // Number of neighborhoods processed in parallel
     int neighborhoodsAmount = 32;
     int neighborhoodsBlocksCount = KernelUtils::getBlockCount(neighborhoodsAmount, DEFAULT_BLOCK_SIZE, true);
+    
+    int varCount = fzModel->intVariables->count;
 
     //-------------------------------------------------------------------------------
     // Initialize searcher
@@ -133,80 +135,6 @@ int main(int argc, char * argv[])
             //~ SNBSearcher->initialize(fzModel,opts.unassignAmount, opts.iterations, , originalDomains);
         }
     }
-    
-    //-------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------
-    // LNS & Co. only: generate neighborhoods with Fisher-Yates
-    // Initialize neighborhoods
-    //-------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------
-    //~ if(opts.mode == Options::SearchMode::LNS or opts.mode == Options::SearchMode::SNBS)
-    //~ {
-        //~ Vector<IntNeighborhood*> neighborhoods;
-        //~ long randSeed = 1273916546123835; // Arbitrary seed, FIXME
-        //~ std::mt19937 mt_rand = std::mt19937(randSeed);
-        //~ int optVariable = fzModel->optVar();
-        //~ int unassignAmount = opts.unassignAmount;
-        //~ if(opts.mode == Options::SearchMode::LNS) unassignAmount = LNSSearcher->unassignAmount;
-        //~ neighborhoods.initialize(neighborhoodsAmount);
-        //~ Vector<int> neighVars;
-        //~ neighVars.initialize(unassignAmount+1);
-        //~ Vector<int> shuffledVars;
-        //~ shuffledVars.initialize(fzModel->intVariables->count);
-        
-        //~ for(int nbh = 0; nbh < neighborhoodsAmount; nbh += 1)
-        //~ {
-            //~ // Fill variables vector to be shuffled
-            //~ for(int i = 0; i < fzModel->intVariables->count; i += 1)
-            //~ {
-                //~ shuffledVars.push_back(i);
-            //~ }
-            
-            //~ // Shuffle (Fisher-Yates/Knuth)
-            //~ for(int i = 0; i < fzModel->intVariables->count-1; i += 1)
-            //~ {
-                //~ // We want a random variable index (bar the optVariable)
-                //~ std::uniform_int_distribution<int> rand_dist(i, fzModel->intVariables->count-2);
-                //~ int j{rand_dist(mt_rand)};
-                //~ int tmp{shuffledVars[i]};
-                //~ shuffledVars[i] = shuffledVars[j];
-                //~ shuffledVars[j] = tmp;
-            //~ }
-            //~ // Copy the required subset of the shuffled variables
-            //~ for(int i = 0; i < unassignAmount; i++)
-            //~ {
-                //~ neighVars.push_back(shuffledVars[i]);
-            //~ }
-            //~ neighVars.push_back(optVariable);
-            //~ // Init neighborhood
-            //~ IntNeighborhood newNeigh;
-            //~ if(opts.mode == Options::SearchMode::LNS)
-            //~ {
-                //~ newNeigh.initialize(&neighVars, LNSSearcher->originalDomains);
-            //~ }
-            //~ else
-            //~ {
-                //~ //newNeigh.initialize(&neighVars, SNBSearcher->originalDomains);
-            //~ }
-            //~ neighborhoods.push_back(&newNeigh);
-            //~ // Clear vectors for reuse
-            //~ shuffledVars.clear();
-            //~ neighVars.clear();
-        //~ }
-        //~ neighVars.deinitialize();
-        //~ shuffledVars.deinitialize();
-        //~ if(opts.mode == Options::SearchMode::LNS)
-        //~ {
-            //~ LNSSearcher->neighborhoods = &neighborhoods;neighborhoodsBlocksCount
-        //~ }
-        //~ else
-        //~ {
-            //~ //SNBSearcher->originalDomains = originalDomains;
-        //~ }
-    //~ }
-    //---------------------------------------------------------------------
                 
     long long elapsedTime { std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - startTime).count() };
@@ -337,13 +265,11 @@ int main(int argc, char * argv[])
                     break;
 
                 case Options::SearchMode::LNS:
+                    cout << "Launching "<< neighborhoodsAmount << " LNS solvers" << endl;
                     #ifdef GPU
                     Wrappers::getNextSolution<<<neighborhoodsBlocksCount, DEFAULT_BLOCK_SIZE>>>
                         (LNSSearcher, searcherTimeout);
-                    LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
-                    Wrappers::restoreBestSolution<<<LNSSearcher->variablesBlockCount, DEFAULT_BLOCK_SIZE>>>
-                        (LNSSearcher);
-                    LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
+                    // Synchronize after resetting
                     #else
                     *solutionFound = LNSSearcher->getNextSolution(searcherTimeout);
                     #endif
@@ -357,6 +283,69 @@ int main(int argc, char * argv[])
                     *solutionFound = SNBSearcher->getNextSolution(searcherTimeout);
                     #endif
                     break;
+            }
+            
+            //-------------------------------------------------------------------------------
+            //-------------------------------------------------------------------------------
+            //-------------------------------------------------------------------------------
+            // LNS & Co. only: generate new neighborhoods
+            //-------------------------------------------------------------------------------
+            //-------------------------------------------------------------------------------
+            //-------------------------------------------------------------------------------
+            if(opts.mode == Options::SearchMode::LNS /*or opts.mode == Options::SearchMode::SNBS*/)
+            {
+                // REMEMBER! Accessing unified memory (i.e. almost everything
+                // in here) means lots of SIGBUS exceptions!
+                // ABSOLUTELY no UM access from host while kernels are running!
+                cout << "Generating new neighborhoods in the meantime..." ;
+                int randSeed = 1337; // FIXME
+                std::mt19937 mt_rand = std::mt19937(randSeed);
+                IntVariables* variables = fzModel->intVariables;
+                int unassignAmount = varCount * opts.unassignRate;
+                if(unassignAmount < 1) unassignAmount = 1;
+
+                Vector<IntNeighborhood*> newNeighs;
+                newNeighs.initialize(neighborhoodsAmount);
+                
+                int* neighVars[neighborhoodsAmount];
+                int shuffledVars[varCount];
+                
+                for(int nbh = 0; nbh < neighborhoodsAmount; nbh += 1)
+                {
+                    neighVars[nbh] = new int [unassignAmount+1];
+                    // Fill variables vector to be shuffled
+                    for(int i = 0; i < varCount; i += 1)
+                    {
+                        //shuffledVars.push_back(i);
+                        shuffledVars[i] = i;
+                    }
+                    
+                    // Shuffle (Fisher-Yates/Knuth)
+                    for(int i = 0; i < varCount-1; i += 1)
+                    {
+                        // We want a random variable index (bar the optVariable)
+                        std::uniform_int_distribution<int> rand_dist(i, varCount-2);
+                        int j{rand_dist(mt_rand)};
+                        int tmp{shuffledVars[i]};
+                        shuffledVars[i] = shuffledVars[j];
+                        shuffledVars[j] = tmp;
+                    }
+                    // Copy the required subset of the shuffled variables
+                    for(int i = 0; i < unassignAmount; i++)
+                    {
+                        neighVars[nbh][i]=shuffledVars[i];
+                    }
+                    neighVars[nbh][unassignAmount] = fzModel->optVar();
+                }
+                
+                cout << "done." << endl;
+                LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
+                
+                cout << "Reinitializing searcher..." << endl;
+                LNSSearcher->reinitialize(neighVars);
+                
+                Wrappers::restoreBestSolution<<<LNSSearcher->variablesBlockCount, DEFAULT_BLOCK_SIZE>>>(LNSSearcher);
+                LogUtils::cudaAssert(__PRETTY_FUNCTION__, cudaDeviceSynchronize());
             }
             
             //-------------------------------------------------------------------------------
@@ -383,8 +372,7 @@ int main(int argc, char * argv[])
                     printer.print(bestSolution, *fzModel);
                 }
             }
-            if(opts.mode == Options::SearchMode::LNS) break;
-        }
+        } // END WHILE
         // Print best solution.
         if(onlyBestSolution)
         {

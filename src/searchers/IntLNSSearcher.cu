@@ -157,6 +157,68 @@ void IntLNSSearcher::initialize(FlatZinc::FlatZincModel* fzModel, double unassig
     //------------------------------------------------------------------
 }
 
+void IntLNSSearcher::reinitialize(int** newNeighs)
+{
+    int numNeighborhoods {neighborhoods.size};
+    int neighSize {neighborhoods[0]->count};
+    
+    for(int nbh = 0; nbh < numNeighborhoods; nbh += 1)
+    {
+        // Copy neighbors in a vector
+        Vector<int>* neighVars;
+        MemUtils::malloc(&neighVars);
+        neighVars->initialize(neighSize);
+        for(int v = 0; v < neighSize; v++)
+        {
+            neighVars->push_back(newNeighs[nbh][v]);
+        }
+        // Deinit old neighborhood
+        neighborhoods[nbh]->deinitialize();
+        // Create substitute
+        IntNeighborhood* newNeigh;
+        MemUtils::malloc(&newNeigh);
+        newNeigh->initialize(neighVars, originalDomains, constraints->count);
+        // Reassign
+        neighborhoods[nbh] = newNeigh;
+    }
+
+    // clear chosen variables/values
+    for(int i = 0; i < numNeighborhoods; i++)
+    {
+        chosenVariables[i].clear();
+    }
+    for(int i = 0; i < numNeighborhoods; i++)
+    {
+        chosenValues[i].clear();
+    }
+
+    // Reset states
+    for(int i = 0; i < numNeighborhoods; i++)
+    {
+        LNSStates[i] = (IntLNSSearcher::Initialized);
+    }
+
+    //------------------------------------------------------------------
+    //------------------------------------------------------------------
+    // Reset stacks
+    //------------------------------------------------------------------
+    //------------------------------------------------------------------
+    for(int s = 0; s < stacks.size; s++)
+    {
+        for(int i = 0; i < unassignAmount; i++)
+        {
+            stacks[s]->representations = &neighborhoods.at(s)->neighRepr;
+            stacks[s]->levelsStacks[i].clear();
+            for(int j = 0; j < stacks[s]->backupsStacks[i].minimums.size; j++)
+            {
+                stacks[s]->backupsStacks[i].pop();
+            }
+        }
+    }
+    //------------------------------------------------------------------
+    //------------------------------------------------------------------
+}
+
 void IntLNSSearcher::deinitialize()
 {
     originalDomains->deinitialize();
